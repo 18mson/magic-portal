@@ -31,16 +31,18 @@ export function PortalCanvas({
         }}
       >
         <XR store={xrStore}>
-          {/* Pencahayaan Scene */}
-          <ambientLight intensity={0.9} />
-          <directionalLight position={[2, 5, 2]} intensity={1.5} />
-
           {/* Kontrol Orbit HANYA aktif saat di luar sesi XR */}
           <NotInXR>
-            <OrbitControls target={[0, 0, -1.2]} enableDamping dampingFactor={0.05} />
+            <OrbitControls
+              target={[0, 0, -1.4]}
+              enableDamping
+              dampingFactor={0.05}
+              minDistance={0.3}
+              maxDistance={4.0}
+            />
           </NotInXR>
 
-          {/* Objek World-Space */}
+          {/* Objek World-Space: Layered Cutout Diorama */}
           <SceneEnvironment />
 
           {/* WebXR DOM Overlay untuk kontrol in-AR di layar HP */}
@@ -48,7 +50,7 @@ export function PortalCanvas({
             <div className="self-center bg-slate-950/85 backdrop-blur-md px-4 py-2 rounded-full border border-teal-500/40 text-center shadow-2xl">
               <p className="text-xs font-bold text-teal-400">✨ Sesi AR Aktif (6DoF)</p>
               <p className="text-[11px] text-slate-300">
-                Geser HP ke samping/maju/mundur untuk tes parallax kubus
+                Geser HP ke samping/maju/mundur untuk merasakan kedalaman parallax diorama
               </p>
             </div>
 

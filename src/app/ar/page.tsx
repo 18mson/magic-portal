@@ -84,9 +84,8 @@ export default function ARPage() {
 
   return (
     <main
-      className={`w-screen h-screen overflow-hidden relative select-none transition-colors duration-300 ${
-        isARActive ? "bg-transparent" : "bg-slate-950"
-      }`}
+      className={`w-screen h-screen overflow-hidden relative select-none transition-colors duration-300 ${isARActive ? "bg-transparent" : "bg-slate-950"
+        }`}
     >
       {/* 3D Canvas with WebXR */}
       <PortalCanvas isARSessionActive={isARActive} onExitAR={handleExitAR} />
@@ -94,11 +93,11 @@ export default function ARPage() {
       {/* Header navigasi (hanya saat tidak di dalam AR penuh) */}
       {!isARActive && (
         <header className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-          <div className="bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-800 text-white shadow-lg pointer-events-auto">
+          <div className="bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-800 text-white shadow-lg pointer-events-auto flex items-center gap-2">
             <span className="text-xs font-semibold text-teal-400 tracking-wider uppercase">
-              Milestone 2
+              Milestone 3
             </span>
-            <span className="text-xs text-slate-400 ml-2">WebXR 6DoF AR</span>
+            <span className="text-xs text-slate-400">Ghibli Ocean Diorama (6DoF)</span>
           </div>
 
           <Link
@@ -132,14 +131,14 @@ export default function ARPage() {
           <div className="self-center bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-full border border-teal-500/40 text-center shadow-2xl">
             <p className="text-xs font-bold text-teal-400">✨ Sesi AR Aktif (6DoF)</p>
             <p className="text-[11px] text-slate-300">
-              Geser HP ke samping/maju/mundur untuk tes parallax kubus
+              Geser HP ke samping/maju/mundur untuk menikmati kedalaman parallax diorama
             </p>
           </div>
 
           <div className="self-center pointer-events-auto">
             <button
               onClick={handleExitAR}
-              className="px-6 py-2.5 rounded-full bg-red-600/90 hover:bg-red-500 text-white text-sm font-semibold shadow-lg backdrop-blur-md transition-all active:scale-95"
+              className="px-6 py-2.5 rounded-full bg-red-600/90 hover:bg-red-500 text-white text-sm font-semibold shadow-lg backdrop-blur-md transition-all active:scale-95 cursor-pointer"
             >
               Keluar AR ✕
             </button>
@@ -165,7 +164,7 @@ export default function ARPage() {
                 <button
                   onClick={handleEnterAR}
                   disabled={isEnteringAR}
-                  className="w-full py-3.5 px-4 rounded-xl bg-linear-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-teal-500/25 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 rounded-xl bg-linear-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-teal-500/25 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isEnteringAR ? (
                     <>
@@ -180,7 +179,7 @@ export default function ARPage() {
                   )}
                 </button>
                 <p className="text-[11px] text-center text-slate-400">
-                  Kamera akan aktif. Kubus berposisi tetap di world-space ruangan Anda.
+                  Kamera akan aktif. Diorama laut bertingkat akan melayang tetap di world-space ruangan Anda.
                 </p>
               </div>
             )}

@@ -1,34 +1,48 @@
 "use client";
 
-import { useMemo, useRef } from "react";
-import { BoxGeometry } from "three";
-import type { Mesh } from "three";
+import { Suspense } from "react";
+import { DioramaWorldSpec, DioramaLayerSpec } from "@/lib/diorama/types";
+import { oceanDioramaSpec } from "@/lib/diorama/oceanSpec";
+import { DioramaLayer } from "./DioramaLayer";
 
-export function SceneEnvironment() {
-  const meshRef = useRef<Mesh>(null);
-  const edgeGeometry = useMemo(() => new BoxGeometry(0.301, 0.301, 0.301), []);
+export interface SceneEnvironmentProps {
+  /** Spesifikasi lengkap diorama (opsional, default: oceanDioramaSpec) */
+  spec?: DioramaWorldSpec;
+  /** Daftar layer kustom (opsional, jika ingin override array layers saja) */
+  layers?: DioramaLayerSpec[];
+}
+
+export function SceneEnvironment({
+  spec = oceanDioramaSpec,
+  layers,
+}: SceneEnvironmentProps) {
+  const activeLayers = layers ?? spec.layers;
 
   return (
-    <group position={[0, 0, -1.2]}>
+    <group>
       {/* 
-        Cube berukuran 30cm (0.3 unit = 0.3 meter) diposisikan tetap di world-space.
-        Koordinat [0, 0, -1.2] berarti 1.2 meter di depan titik asal kamera saat sesi AR dimulai.
-        Kubus diam tanpa animasi agar user dapat memverifikasi translasi 6DoF (parallax) secara akurat.
+        Fog hangat (THREE.FogExp2) berwarna teal-cream ala Studio Ghibli.
+        Menyatukan layer kejauhan secara lembut dengan kedalaman air laut.
       */}
-      <mesh ref={meshRef}>
-        <boxGeometry args={[0.3, 0.3, 0.3]} />
-        <meshStandardMaterial
-          color="#06b6d4" // teal Ghibli tone
-          roughness={0.2}
-          metalness={0.1}
-        />
-      </mesh>
+      <fogExp2 attach="fog" args={[spec.fog.color, spec.fog.density]} />
 
-      {/* Garis tepi luar agar sudut dan pergeseran perspektif lebih kontras terlihat */}
-      <lineSegments>
-        <edgesGeometry args={[edgeGeometry]} />
-        <lineBasicMaterial color="#ffffff" />
-      </lineSegments>
+      {/* Pencahayaan terarah & ambient alami sesuai spesifikasi dunia */}
+      <ambientLight
+        color={spec.lighting.ambientColor}
+        intensity={spec.lighting.ambientIntensity}
+      />
+      <directionalLight
+        position={spec.lighting.sunPosition}
+        color={spec.lighting.sunColor}
+        intensity={spec.lighting.sunIntensity}
+      />
+
+      {/* Rangkaian Layer Cutout Diorama dengan kedalaman Z bertingkat */}
+      <Suspense fallback={null}>
+        {activeLayers.map((layer) => (
+          <DioramaLayer key={layer.id} layer={layer} />
+        ))}
+      </Suspense>
     </group>
   );
 }

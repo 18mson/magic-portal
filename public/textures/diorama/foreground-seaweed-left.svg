@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 800" width="500" height="800">
+  <defs>
+    <linearGradient id="kelpDark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#49b08f" />
+      <stop offset="50%" stop-color="#246e59" />
+      <stop offset="100%" stop-color="#0f372c" />
+    </linearGradient>
+
+    <linearGradient id="kelpBright" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#80e2b4" />
+      <stop offset="50%" stop-color="#3fa681" />
+      <stop offset="100%" stop-color="#195542" />
+    </linearGradient>
+  </defs>
+
+  <!-- Seaweed stalk 1 (Far left tall) -->
+  <path d="M-10,800 Q30,620 50,480 T10,240 Q40,110 90,20 Q60,110 50,240 T90,480 Q60,630 40,800 Z" fill="url(#kelpDark)" opacity="0.95" />
+
+  <!-- Seaweed stalk 2 (Middle curling right) -->
+  <path d="M70,800 Q140,650 170,490 T140,290 Q220,160 250,70 Q200,170 170,300 T190,500 Q160,660 110,800 Z" fill="url(#kelpBright)" />
+
+  <!-- Seaweed stalk 3 (Foreground lush) -->
+  <path d="M120,800 Q220,680 260,530 T220,340 Q310,240 330,150 Q280,250 250,350 T280,540 Q250,690 170,800 Z" fill="url(#kelpDark)" />
+
+  <!-- Floating bubbles in kelp forest -->
+  <g fill="#cbf7e6" opacity="0.6">
+    <circle cx="160" cy="420" r="10" />
+    <circle cx="210" cy="280" r="14" />
+    <circle cx="280" cy="190" r="8" />
+    <circle cx="80" cy="510" r="12" />
+    <circle cx="120" cy="220" r="7" />
+  </g>
+</svg>

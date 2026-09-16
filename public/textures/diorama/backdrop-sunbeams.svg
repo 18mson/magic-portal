@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800" width="1000" height="800">
+  <defs>
+    <radialGradient id="deepOcean" cx="50%" cy="20%" r="80%">
+      <stop offset="0%" stop-color="#2a7b88" stop-opacity="0.95" />
+      <stop offset="50%" stop-color="#195362" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0c2d37" stop-opacity="0.85" />
+    </radialGradient>
+    
+    <linearGradient id="sunbeam1" x1="0%" y1="0%" x2="40%" y2="100%">
+      <stop offset="0%" stop-color="#eaf7d7" stop-opacity="0.65" />
+      <stop offset="30%" stop-color="#a4e4d0" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#2a7b88" stop-opacity="0.0" />
+    </linearGradient>
+
+    <linearGradient id="sunbeam2" x1="20%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#fff8db" stop-opacity="0.75" />
+      <stop offset="40%" stop-color="#8ce3cf" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#2a7b88" stop-opacity="0.0" />
+    </linearGradient>
+
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="15" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Ocean gradient base cutout -->
+  <rect width="1000" height="800" rx="40" fill="url(#deepOcean)" opacity="0.88" />
+
+  <!-- Painterly Sunbeams / Godrays -->
+  <g filter="url(#softGlow)">
+    <polygon points="420,0 520,0 720,800 500,800" fill="url(#sunbeam2)" />
+    <polygon points="280,0 360,0 200,800 60,800" fill="url(#sunbeam1)" opacity="0.8" />
+    <polygon points="560,0 660,0 950,800 780,800" fill="url(#sunbeam1)" opacity="0.9" />
+    <polygon points="120,0 200,0 0,600 0,400" fill="url(#sunbeam2)" opacity="0.6" />
+  </g>
+
+  <!-- Ambient glowing dust motes / sea particles -->
+  <g fill="#e7f8e8" opacity="0.6">
+    <circle cx="480" cy="220" r="4" />
+    <circle cx="530" cy="280" r="6" />
+    <circle cx="340" cy="360" r="3" />
+    <circle cx="620" cy="180" r="5" />
+    <circle cx="710" cy="320" r="4" />
+    <circle cx="260" cy="190" r="3" />
+    <circle cx="410" cy="440" r="5" />
+  </g>
+</svg>

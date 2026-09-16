@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" width="1000" height="650">
+  <defs>
+    <linearGradient id="coralRock" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4d8c8e" />
+      <stop offset="50%" stop-color="#32636a" />
+      <stop offset="100%" stop-color="#1b4149" />
+    </linearGradient>
+
+    <linearGradient id="warmCoralOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f89275" />
+      <stop offset="70%" stop-color="#e06953" />
+      <stop offset="100%" stop-color="#b64639" />
+    </linearGradient>
+
+    <linearGradient id="coralPink" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffb396" />
+      <stop offset="100%" stop-color="#e76f64" />
+    </linearGradient>
+
+    <linearGradient id="anemoneTeal" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7fe0c8" />
+      <stop offset="100%" stop-color="#3b968c" />
+    </linearGradient>
+  </defs>
+
+  <!-- Left Main Coral Reef Rock Base -->
+  <path d="M-20,650 L-20,240 Q60,200 120,250 Q180,300 220,260 Q260,220 300,280 Q340,340 380,300 Q430,260 480,340 Q420,430 380,520 Q330,620 300,650 Z" fill="url(#coralRock)" />
+
+  <!-- Right Coral Pillar -->
+  <path d="M1020,650 L1020,280 Q940,240 880,310 Q820,380 770,330 Q720,280 660,350 Q630,420 640,510 Q650,600 680,650 Z" fill="url(#coralRock)" />
+
+  <!-- Organic Branching Corals (Left) -->
+  <!-- Branch 1 (Orange Antler Coral) -->
+  <path d="M80,220 C60,150 40,110 30,70 C45,70 60,95 75,130 C90,110 100,75 110,50 C125,55 125,85 115,130 C135,115 155,90 170,70 C185,80 175,115 150,150 C190,140 215,130 230,120 C240,135 220,165 180,185 C160,200 130,220 110,240 Z" fill="url(#warmCoralOrange)" />
+
+  <!-- Tube sponges / Anemones on left ridge -->
+  <g fill="url(#coralPink)">
+    <path d="M150,280 C160,230 175,230 185,280 Z" />
+    <path d="M180,270 C195,210 210,210 220,270 Z" />
+    <path d="M210,285 C220,240 235,240 240,285 Z" />
+  </g>
+
+  <!-- Right Branching Soft Coral -->
+  <path d="M850,280 C870,200 890,150 910,90 C925,100 915,135 900,170 C925,150 945,110 960,80 C975,90 965,130 940,170 C965,155 990,130 1005,110 C1015,125 1000,160 970,195 C950,220 920,240 900,290 Z" fill="url(#warmCoralOrange)" />
+
+  <!-- Fan Coral / Sea Anemone clusters (Center-Right) -->
+  <g fill="url(#anemoneTeal)">
+    <circle cx="360" cy="310" r="28" opacity="0.9" />
+    <circle cx="390" cy="290" r="22" opacity="0.95" />
+    <circle cx="335" cy="330" r="20" opacity="0.85" />
+    <circle cx="740" cy="340" r="26" opacity="0.9" />
+    <circle cx="765" cy="315" r="20" opacity="0.95" />
+  </g>
+
+  <!-- Ground sandy texture overlay at bottom -->
+  <path d="M-20,650 Q250,580 500,590 Q750,600 1020,570 L1020,650 Z" fill="#1b4149" opacity="0.7" />
+</svg>

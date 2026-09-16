@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" width="600" height="350">
+  <defs>
+    <linearGradient id="fishGold" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#ffdd78" />
+      <stop offset="50%" stop-color="#f89f4b" />
+      <stop offset="100%" stop-color="#e8613c" />
+    </linearGradient>
+
+    <linearGradient id="fishTeal" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#9ff3e1" />
+      <stop offset="60%" stop-color="#4dbca8" />
+      <stop offset="100%" stop-color="#21796d" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fish 1 (Leader Gold) -->
+  <g transform="translate(180, 110) scale(0.95)">
+    <!-- Tail Fin -->
+    <polygon points="120,40 160,15 145,40 160,65" fill="#f89f4b" opacity="0.85" />
+    <!-- Body -->
+    <path d="M20,40 Q60,10 120,40 Q60,70 20,40 Z" fill="url(#fishGold)" />
+    <!-- Eye -->
+    <circle cx="38" cy="36" r="4" fill="#2d1c08" />
+    <circle cx="37" cy="35" r="1.5" fill="#ffffff" />
+    <!-- Dorsal Fin -->
+    <path d="M55,20 Q80,5 95,27 Z" fill="#ffdd78" opacity="0.8" />
+  </g>
+
+  <!-- Fish 2 (Upper Teal) -->
+  <g transform="translate(290, 40) scale(0.75)">
+    <polygon points="120,40 160,15 145,40 160,65" fill="#4dbca8" opacity="0.85" />
+    <path d="M20,40 Q60,10 120,40 Q60,70 20,40 Z" fill="url(#fishTeal)" />
+    <circle cx="38" cy="36" r="4" fill="#092923" />
+    <circle cx="37" cy="35" r="1.5" fill="#ffffff" />
+    <path d="M55,20 Q80,5 95,27 Z" fill="#9ff3e1" opacity="0.8" />
+  </g>
+
+  <!-- Fish 3 (Lower Gold) -->
+  <g transform="translate(100, 190) scale(0.8)">
+    <polygon points="120,40 160,15 145,40 160,65" fill="#f89f4b" opacity="0.85" />
+    <path d="M20,40 Q60,10 120,40 Q60,70 20,40 Z" fill="url(#fishGold)" />
+    <circle cx="38" cy="36" r="4" fill="#2d1c08" />
+    <circle cx="37" cy="35" r="1.5" fill="#ffffff" />
+  </g>
+
+  <!-- Fish 4 (Right Small Follower) -->
+  <g transform="translate(360, 160) scale(0.65)">
+    <polygon points="120,40 160,15 145,40 160,65" fill="#4dbca8" opacity="0.85" />
+    <path d="M20,40 Q60,10 120,40 Q60,70 20,40 Z" fill="url(#fishTeal)" />
+    <circle cx="38" cy="36" r="3.5" fill="#092923" />
+    <circle cx="37" cy="35" r="1" fill="#ffffff" />
+  </g>
+
+  <!-- Fish 5 (Top Left Tiny Follower) -->
+  <g transform="translate(80, 50) scale(0.55)">
+    <polygon points="120,40 160,15 145,40 160,65" fill="#f89f4b" opacity="0.85" />
+    <path d="M20,40 Q60,10 120,40 Q60,70 20,40 Z" fill="url(#fishGold)" />
+  </g>
+
+  <!-- Little trail bubbles -->
+  <g fill="#e3f9f3" opacity="0.7">
+    <circle cx="330" cy="150" r="3" />
+    <circle cx="345" cy="148" r="2" />
+    <circle cx="230" cy="230" r="4" />
+    <circle cx="245" cy="226" r="2.5" />
+  </g>
+</svg>

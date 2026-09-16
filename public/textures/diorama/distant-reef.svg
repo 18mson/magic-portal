@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 600" width="1000" height="600">
+  <defs>
+    <linearGradient id="distantMtnGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4aa3a7" stop-opacity="0.85" />
+      <stop offset="60%" stop-color="#2c727d" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#144b55" stop-opacity="0.95" />
+    </linearGradient>
+    <linearGradient id="layer2Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3d8f95" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#1c5560" stop-opacity="0.95" />
+    </linearGradient>
+  </defs>
+
+  <!-- Far silhouette ridge -->
+  <path d="M0,350 Q160,260 300,310 T600,240 T850,290 T1000,220 L1000,600 L0,600 Z" fill="url(#distantMtnGrad)" opacity="0.6" />
+
+  <!-- Mid-distant submarine cliffs & arch formation -->
+  <path d="M0,420 Q120,330 250,370 Q380,410 480,310 Q580,210 680,320 Q780,430 890,360 Q960,320 1000,380 L1000,600 L0,600 Z" fill="url(#layer2Grad)" opacity="0.9" />
+
+  <!-- Natural water window cutout arch in cliff -->
+  <path d="M520,600 Q540,430 630,430 Q720,430 730,600 Z" fill="#205a67" opacity="0.8" />
+</svg>
