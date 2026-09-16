@@ -23,7 +23,7 @@ export function PortalCanvas({
     >
       <Canvas
         gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
-        camera={{ position: [0, 0, 0.5], fov: 60 }}
+        camera={{ position: [0, 0, 0.5], fov: 60, near: 0.05, far: 500 }}
         className="w-full h-full touch-none"
         onCreated={({ gl, scene }) => {
           gl.setClearColor(0x000000, 0);

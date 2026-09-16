@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { DioramaWorldSpec, DioramaLayerSpec } from "@/lib/diorama/types";
 import { oceanDioramaSpec } from "@/lib/diorama/oceanSpec";
 import { DioramaLayer } from "./DioramaLayer";
+import { UnderwaterSkydome } from "./UnderwaterSkydome";
 
 export interface SceneEnvironmentProps {
   /** Spesifikasi lengkap diorama (opsional, default: oceanDioramaSpec) */
@@ -20,6 +21,14 @@ export function SceneEnvironment({
 
   return (
     <group>
+      {/* 
+        Skydome 360 derajat Opaque:
+        Membungkus pandangan 360° secara total dan mengikuti posisi kamera XR
+        sehingga video kamera fisik tertutup 100% dari semua sudut,
+        sementara 6DoF tracking tetap bekerja.
+      */}
+      <UnderwaterSkydome />
+
       {/* 
         Fog hangat (THREE.FogExp2) berwarna teal-cream ala Studio Ghibli.
         Menyatukan layer kejauhan secara lembut dengan kedalaman air laut.

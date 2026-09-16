@@ -55,6 +55,7 @@ export function DioramaLayer({ layer }: DioramaLayerProps) {
   // Konten mesh bidang 2D cutout
   const planeContent = (
     <mesh
+      scale={layer.flipX ? [-1, 1, 1] : undefined}
       rotation={
         shouldBillboardHorizontal || shouldBillboardFull
           ? undefined

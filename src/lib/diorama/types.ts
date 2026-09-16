@@ -30,6 +30,8 @@ export interface DioramaLayerSpec {
   scale: [width: number, height: number] | number;
   /** Rotasi opsional [x, y, z] dalam radian */
   rotation?: [x: number, y: number, z: number];
+  /** Membalik tekstur secara horizontal agar variasi renang tidak searah */
+  flipX?: boolean;
   /** Nilai threshold alphaTest untuk eliminasi piksel transparan (default: 0.05) */
   alphaTest?: number;
   /** Opasitas keseluruhan layer (0 - 1) */
