@@ -2,7 +2,7 @@ import { createXRStore } from "@react-three/xr";
 
 // Singleton store untuk WebXR
 export const xrStore = createXRStore({
-  // WebXR v6 defaults
+  emulate: false,
 });
 
 export type ARSupportStatus =

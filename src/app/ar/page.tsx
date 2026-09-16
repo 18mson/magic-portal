@@ -1,20 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { PortalCanvas } from "@/components/canvas/PortalCanvas";
 import { xrStore, checkARSupport, ARSupportStatus } from "@/lib/xrStore";
 
 export default function ARPage() {
-  const [mounted, setMounted] = useState(false);
+  // Track client mounting safely without cascading re-renders
+  const mounted = useSyncExternalStore(
+    () => () => { },
+    () => true,
+    () => false
+  );
   const [supportStatus, setSupportStatus] = useState<ARSupportStatus>("CHECKING");
   const [isARActive, setIsARActive] = useState(false);
   const [isEnteringAR, setIsEnteringAR] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setMounted(true);
-
     // Cek kapabilitas WebXR AR
     checkARSupport().then((status) => {
       setSupportStatus(status);
@@ -22,14 +25,22 @@ export default function ARPage() {
 
     // Subscribe ke perubahan session XR
     const unsubscribe = xrStore.subscribe((state) => {
-      setIsARActive(Boolean(state.session));
-      if (!state.session) {
+      const active = Boolean(state.session);
+      setIsARActive(active);
+      if (active) {
+        document.documentElement.classList.add("ar-session-active");
+        document.body.classList.add("ar-session-active");
+      } else {
+        document.documentElement.classList.remove("ar-session-active");
+        document.body.classList.remove("ar-session-active");
         setIsEnteringAR(false);
       }
     });
 
     return () => {
       unsubscribe();
+      document.documentElement.classList.remove("ar-session-active");
+      document.body.classList.remove("ar-session-active");
     };
   }, []);
 
@@ -72,9 +83,13 @@ export default function ARPage() {
   }
 
   return (
-    <main className="w-screen h-screen overflow-hidden bg-slate-950 relative select-none">
+    <main
+      className={`w-screen h-screen overflow-hidden relative select-none transition-colors duration-300 ${
+        isARActive ? "bg-transparent" : "bg-slate-950"
+      }`}
+    >
       {/* 3D Canvas with WebXR */}
-      <PortalCanvas isARSessionActive={isARActive} />
+      <PortalCanvas isARSessionActive={isARActive} onExitAR={handleExitAR} />
 
       {/* Header navigasi (hanya saat tidak di dalam AR penuh) */}
       {!isARActive && (
@@ -150,7 +165,7 @@ export default function ARPage() {
                 <button
                   onClick={handleEnterAR}
                   disabled={isEnteringAR}
-                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-teal-500/25 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-4 rounded-xl bg-linear-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-sm tracking-wide shadow-lg shadow-teal-500/25 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isEnteringAR ? (
                     <>
