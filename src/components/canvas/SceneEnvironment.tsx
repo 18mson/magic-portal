@@ -5,6 +5,9 @@ import { DioramaWorldSpec, DioramaLayerSpec } from "@/lib/diorama/types";
 import { oceanDioramaSpec } from "@/lib/diorama/oceanSpec";
 import { DioramaLayer } from "./DioramaLayer";
 import { UnderwaterSkydome } from "./UnderwaterSkydome";
+import { UnderwaterTerrain } from "./UnderwaterTerrain";
+import { CoralReef3D } from "./CoralReef3D";
+import { KelpForest3D } from "./KelpForest3D";
 import { VolumetricLightShafts } from "./VolumetricLightShafts";
 
 export interface SceneEnvironmentProps {
@@ -29,6 +32,24 @@ export function SceneEnvironment({
         sementara 6DoF tracking tetap bekerja.
       */}
       <UnderwaterSkydome />
+
+      {/* 
+        Dasar Laut Pasir & Bukit Karang 3D Nyata (Seabed Basin & Hills):
+        Menutup lubang tengah dengan lantai pasir utuh, riak pasir alami, dan bukit bervolume.
+      */}
+      <UnderwaterTerrain />
+
+      {/* 
+        Formasi Karang 3D Solid & Anemon:
+        Batu karang peach, orange, dan anemon turquoise 3D yang tertanam di atas pasir.
+      */}
+      <CoralReef3D />
+
+      {/* 
+        Hutan Rumput Laut 3D Nyata (3D Volumetric Kelp Forest):
+        Bilah daun rumput laut 3D bersilangan yang tertancap di pasir dan meliuk mengikuti arus.
+      */}
+      <KelpForest3D />
 
       {/* 
         Berkas Cahaya Matahari 3D Asli (3D Volumetric Sunbeams / Godrays):
