@@ -196,26 +196,6 @@ function generate360OceanLayers(): DioramaLayerSpec[] {
     });
   });
 
-  // ==========================================
-  // 6. BERKAS CAHAYA MATAHARI (SUNBEAM SHAFTS) ~ 4 Sudut di Langit
-  // ==========================================
-  const sunbeamAngles = [0, 90, 180, 270];
-  sunbeamAngles.forEach((deg, idx) => {
-    const yawAngle = (deg * Math.PI) / 180;
-    layers.push({
-      id: `sunbeam-${idx}`,
-      name: `Sunbeam Shaft #${idx + 1}`,
-      category: "backdrop",
-      textureUrl: "/textures/diorama/backdrop-sunbeams.svg",
-      position: polarToXYZ(deg, 4.2, 0.4),
-      scale: [3.8, 3.0],
-      rotation: [0, yawAngle, 0],
-      alphaTest: 0.02,
-      opacity: 0.85,
-      billboard: "none",
-    });
-  });
-
   return layers;
 }
 

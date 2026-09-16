@@ -5,6 +5,7 @@ import { DioramaWorldSpec, DioramaLayerSpec } from "@/lib/diorama/types";
 import { oceanDioramaSpec } from "@/lib/diorama/oceanSpec";
 import { DioramaLayer } from "./DioramaLayer";
 import { UnderwaterSkydome } from "./UnderwaterSkydome";
+import { VolumetricLightShafts } from "./VolumetricLightShafts";
 
 export interface SceneEnvironmentProps {
   /** Spesifikasi lengkap diorama (opsional, default: oceanDioramaSpec) */
@@ -28,6 +29,12 @@ export function SceneEnvironment({
         sementara 6DoF tracking tetap bekerja.
       */}
       <UnderwaterSkydome />
+
+      {/* 
+        Berkas Cahaya Matahari 3D Asli (3D Volumetric Sunbeams / Godrays):
+        Menyorot tembus ke kedalaman air dengan depth 3D nyata dan partikel debu laut bersinar.
+      */}
+      <VolumetricLightShafts />
 
       {/* 
         Fog hangat (THREE.FogExp2) berwarna teal-cream ala Studio Ghibli.
