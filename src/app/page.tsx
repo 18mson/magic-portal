@@ -27,11 +27,11 @@ export default function Home() {
         </div>
 
         <div className="pt-4 border-t border-slate-800/80 text-left text-xs text-slate-500 space-y-2">
-          <p className="font-semibold text-slate-400">Milestone Saat Ini: M1 (Setup Dasar)</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Next.js App Router + TypeScript + Tailwind</li>
-            <li>Three.js, React Three Fiber, Drei, &amp; @react-three/xr</li>
-            <li>Render pipeline desktop siap diverifikasi di <code className="text-sky-400 font-mono">/ar</code></li>
+          <p className="font-semibold text-slate-300">Milestone Saat Ini: M6 (Creature Inspection &amp; Deep Immersion)</p>
+          <ul className="list-disc list-inside space-y-1 text-slate-400">
+            <li>Inspeksi Hologram: Ketuk satwa laut untuk melihat profil biologis, taksonomi, dan kecepatan renang</li>
+            <li>Suasana Ganda: Beralih instan antara Crimson Twilight vs. Abyssal Midnight (Bioluminescent)</li>
+            <li>Multi-Scale AR: Pilih skala Tabletop (0.4x), Room-Scale (1.0x), atau Life-Size (1.8x)</li>
           </ul>
         </div>
       </div>

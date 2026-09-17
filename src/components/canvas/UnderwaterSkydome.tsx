@@ -24,9 +24,9 @@ interface UnderwaterSkydomeProps {
  */
 export function UnderwaterSkydome({
   radius = 60,
-  topColor = "#5dc0c4",     // Surface turquoise sunlit waters
-  midColor = "#206775",     // Mid-depth teal Ghibli ocean
-  bottomColor = "#081f28",  // Abyssal deep ocean floor
+  topColor = "#e64c6c",     // Surface coral-rose waters
+  midColor = "#a61438",     // Mid-depth rich crimson ocean
+  bottomColor = "#420412",  // Deep velvet burgundy abyss
 }: UnderwaterSkydomeProps) {
   const meshRef = useRef<Mesh>(null);
 
@@ -40,10 +40,13 @@ export function UnderwaterSkydome({
   );
 
   // Selalu ikuti posisi kamera (XR maupun desktop) setiap frame
-  // agar user tidak pernah keluar dari bola diorama 360
+  // dan pastikan warna seragam terupdate saat props berubah
   useFrame(({ camera }) => {
     if (meshRef.current) {
       meshRef.current.position.copy(camera.position);
+      uniforms.topColor.value.set(topColor);
+      uniforms.midColor.value.set(midColor);
+      uniforms.bottomColor.value.set(bottomColor);
     }
   });
 

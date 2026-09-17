@@ -72,8 +72,8 @@ function SingleShaft({ config }: { config: ShaftConfig }) {
 
   const uniforms = useMemo(
     () => ({
-      // Warna hangat turquoise-sunbeam khas Studio Ghibli (tidak menyilaukan mata)
-      color: { value: new Color("#9aebe0") },
+      // Warna hangat pink-gold khas ilustrasi
+      color: { value: new Color("#ffd4df") },
       time: { value: 0 },
       intensity: { value: config.intensity },
       speed: { value: config.speed },
@@ -184,8 +184,8 @@ export function VolumetricLightShafts() {
         position={[0, 0.3, 0]}
         size={3.0}
         speed={0.3}
-        opacity={0.45}
-        color="#cbf8ed"
+        opacity={0.5}
+        color="#fbcfe8"
       />
     </group>
   );

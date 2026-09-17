@@ -4,6 +4,8 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { PortalCanvas } from "@/components/canvas/PortalCanvas";
 import { xrStore, checkARSupport, ARSupportStatus } from "@/lib/xrStore";
+import { underwaterAudio } from "@/lib/audio/underwaterAudio";
+import { CreatureInspectionCard } from "@/components/ui/CreatureInspectionCard";
 
 export default function ARPage() {
   // Track client mounting safely without cascading re-renders
@@ -16,6 +18,22 @@ export default function ARPage() {
   const [isARActive, setIsARActive] = useState(false);
   const [isEnteringAR, setIsEnteringAR] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const [worldScale, setWorldScale] = useState(1.0);
+  const [atmosphereMode, setAtmosphereMode] = useState<"crimson" | "abyssal">("crimson");
+
+  const handleToggleAudio = () => {
+    const nextMuted = underwaterAudio.toggleMute();
+    setIsMuted(nextMuted);
+  };
+
+  const handleCycleScale = () => {
+    setWorldScale((prev) => (prev === 1.0 ? 0.4 : prev === 0.4 ? 1.8 : 1.0));
+  };
+
+  const handleToggleAtmosphere = () => {
+    setAtmosphereMode((prev) => (prev === "crimson" ? "abyssal" : "crimson"));
+  };
 
   useEffect(() => {
     // Cek kapabilitas WebXR AR
@@ -88,25 +106,72 @@ export default function ARPage() {
         }`}
     >
       {/* 3D Canvas with WebXR */}
-      <PortalCanvas isARSessionActive={isARActive} onExitAR={handleExitAR} />
+      <PortalCanvas
+        isARSessionActive={isARActive}
+        onExitAR={handleExitAR}
+        isMuted={isMuted}
+        onToggleAudio={handleToggleAudio}
+        worldScale={worldScale}
+        onCycleScale={handleCycleScale}
+        atmosphereMode={atmosphereMode}
+        onToggleAtmosphere={handleToggleAtmosphere}
+      />
+
+      {/* Kartu Inspeksi Hologram Satwa Laut (Milestone 6) */}
+      <CreatureInspectionCard />
 
       {/* Header navigasi (hanya saat tidak di dalam AR penuh) */}
       {!isARActive && (
-        <header className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-          <div className="bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-800 text-white shadow-lg pointer-events-auto flex items-center gap-2">
-            <span className="text-xs font-semibold text-teal-400 tracking-wider uppercase">
-              Milestone 3
-            </span>
-            <span className="text-xs text-slate-400">Ghibli Ocean Diorama (6DoF)</span>
-          </div>
+        <>
+          <header className="absolute top-4 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+            <div className="bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-slate-800 text-white shadow-lg pointer-events-auto flex items-center gap-2">
+              <span className="text-xs font-semibold text-teal-400 tracking-wider uppercase">
+                Milestone 6
+              </span>
+              <span className="text-xs text-slate-400">Creature Inspection &amp; Deep Immersion</span>
+            </div>
 
-          <Link
-            href="/"
-            className="px-3 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-800 text-xs font-medium text-white transition-colors shadow-lg pointer-events-auto"
-          >
-            ← Beranda
-          </Link>
-        </header>
+            <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
+              <button
+                onClick={handleToggleAtmosphere}
+                className="px-3 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-800 text-xs font-medium text-white transition-colors shadow-lg flex items-center gap-1.5 cursor-pointer"
+                title="Beralih Suasana Ekosistem"
+              >
+                <span>{atmosphereMode === "crimson" ? "☀️ Crimson" : "🌙 Abyssal"}</span>
+              </button>
+
+              <button
+                onClick={handleCycleScale}
+                className="px-3 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-800 text-xs font-medium text-white transition-colors shadow-lg flex items-center gap-1.5 cursor-pointer"
+                title="Ubah Skala Diorama (0.4x Meja / 1.0x Ruang / 1.8x Penuh)"
+              >
+                <span>📐 {worldScale}x Skala</span>
+              </button>
+
+              <button
+                onClick={handleToggleAudio}
+                className="px-3 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-800 text-xs font-medium text-white transition-colors shadow-lg flex items-center gap-1.5 cursor-pointer"
+                title="Toggle Suara Bawah Air"
+              >
+                <span>{isMuted ? "🔇" : "🔊"}</span>
+                <span className="hidden sm:inline">{isMuted ? "Suara Bisu" : "Suara Aktif"}</span>
+              </button>
+
+              <Link
+                href="/"
+                className="px-3 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-800 text-xs font-medium text-white transition-colors shadow-lg"
+              >
+                ← Beranda
+              </Link>
+            </div>
+          </header>
+
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+            <div className="bg-slate-950/75 backdrop-blur-md px-3.5 py-1 rounded-full border border-teal-500/30 text-center shadow-lg text-[11px] text-teal-300">
+              ✨ Ketuk ikan untuk inspeksi profil biologis &bull; Ketuk air untuk pakan &amp; riak
+            </div>
+          </div>
+        </>
       )}
 
       {/* Pesan Error Banner jika ada */}

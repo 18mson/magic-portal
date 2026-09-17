@@ -21,7 +21,7 @@ function polarToXYZ(
  * Menghasilkan puluhan layer terdistribusi penuh 360 derajat mengelilingi user
  * dengan variasi jarak Z/X, tinggi Y, kecepatan ayunan, dan arah renang (flipX).
  */
-function generate360OceanLayers(): DioramaLayerSpec[] {
+export function generate360OceanLayers(): DioramaLayerSpec[] {
   const layers: DioramaLayerSpec[] = [];
 
   // ==========================================
@@ -131,18 +131,39 @@ function generate360OceanLayers(): DioramaLayerSpec[] {
  */
 export const oceanDioramaSpec: DioramaWorldSpec = {
   id: "ghibli-ocean-360",
-  title: "Samudera Karang Biru 360° Ghibli",
-  description: "Diorama bawah laut 360 derajat penuh dengan puluhan ikan, pari manta, dan rumput laut di sekeliling user",
+  title: "Samudera Karang Merah Crimson Ghibli",
+  description: "Diorama bawah laut crimson dan rose-pink dengan ikan kuning bergaris dan karang ranting artistik",
   fog: {
-    color: "#236573",
-    density: 0.26,
+    color: "#7d0e29",
+    density: 0.20,
   },
   lighting: {
-    ambientColor: "#b2e6ea",
-    ambientIntensity: 1.3,
+    ambientColor: "#f28599",
+    ambientIntensity: 0.95,
     sunPosition: [2, 6, 2],
-    sunColor: "#fff8db",
-    sunIntensity: 1.7,
+    sunColor: "#fff2db",
+    sunIntensity: 1.20,
   },
-  layers: generate360OceanLayers(),
+  layers: [],
 };
+
+export const crimsonTwilightSpec = oceanDioramaSpec;
+
+export const abyssalMidnightSpec: DioramaWorldSpec = {
+  id: "abyssal-midnight-360",
+  title: "Palung Laut Malam Bioluminescent",
+  description: "Diorama palung laut malam dengan pendaran neon cyan, bioluminesensi ungu, dan karang menyala",
+  fog: {
+    color: "#030a14",
+    density: 0.22,
+  },
+  lighting: {
+    ambientColor: "#1e3a8a",
+    ambientIntensity: 0.70,
+    sunPosition: [1, 7, -1],
+    sunColor: "#38bdf8",
+    sunIntensity: 0.85,
+  },
+  layers: [],
+};
+

@@ -9,6 +9,7 @@ import {
   Float32BufferAttribute,
   Group,
 } from "three";
+import { getTerrainHeight } from "@/lib/terrain/terrainHeight";
 
 interface KelpClumpConfig {
   pos: [number, number, number];
@@ -20,8 +21,8 @@ interface KelpClumpConfig {
 
 /**
  * Membangun geometri rumpun rumput laut 3D (Cross-ribbon kelp stalks):
- * Terdiri dari bilah-bilah daun rumput laut bersilangan 90° dan meliuk vertikal,
- * sehingga memiliki ketebalan nyata dan terlihat rimbun dari sudut pandang manapun 360°.
+ * Terdiri dari bilah-bilah daun bersilangan 90° dan meliuk vertikal,
+ * memiliki ketebalan nyata dan rimbun dari sudut pandang manapun 360°.
  */
 function create3DKelpGeometry(height: number, width: number) {
   const geo = new BufferGeometry();
@@ -30,13 +31,12 @@ function create3DKelpGeometry(height: number, width: number) {
   const colors: number[] = [];
   const indices: number[] = [];
 
-  const baseColor = new Color("#165440");   // Akar dekat pasir
-  const midColor = new Color("#35a37e");    // Batang tengah
-  const tipColor = new Color("#7ce2b8");    // Pucuk daun muda
+  const baseColor = new Color("#360614");   // Akar dekat pasir plum gelap
+  const midColor = new Color("#941838");    // Batang tengah magenta-crimson
+  const tipColor = new Color("#f472b6");    // Pucuk daun rose-pink muda
   const tempCol = new Color();
 
   // Buat 2 bilah daun bersilangan membentuk tanda silang (+)
-  // Bilah 1 pada bidang X-Y, Bilah 2 pada bidang Z-Y
   for (let b = 0; b < 2; b++) {
     const vertexOffset = b * (segments + 1) * 2;
     const isZAxis = b === 1;
@@ -132,39 +132,49 @@ function SingleKelpClump({
 
 /**
  * Komponen Hutan Rumput Laut 3D Nyata (3D Volumetric Kelp Forest):
- * - Tumbuh tertancap langsung dari dasar lantai pasir.
- * - Memiliki bentuk 3D bersilangan penuh, tidak akan pernah terlihat tipis seperti kertas.
- * - Meliuk lembut mengikuti arus air bawah laut.
+ * - Tumbuh tertancap langsung dari permukaan terrain baru (getTerrainHeight).
+ * - Tersebar di area tengah dan sekeliling luar cekungan pasir.
+ * - Memiliki bentuk 3D bersilangan penuh, meliuk lembut mengikuti arus air bawah laut.
  */
 export function KelpForest3D() {
   const kelpGeo = useMemo(() => create3DKelpGeometry(1.25, 0.28), []);
 
-  // 14 rumpun rumput laut 3D tertanam melingkar di sekeliling lantai pasir
   const kelpClumps: KelpClumpConfig[] = useMemo(() => {
     const rawData = [
-      { deg: 20,  r: 1.3, y: -0.56, sc: 1.05, spd: 1.2 },
-      { deg: 45,  r: 1.6, y: -0.54, sc: 1.2,  spd: 1.0 },
-      { deg: 75,  r: 1.4, y: -0.55, sc: 0.95, spd: 1.4 },
-      { deg: 110, r: 1.7, y: -0.53, sc: 1.15, spd: 1.1 },
-      { deg: 135, r: 1.35, y: -0.56, sc: 1.0, spd: 1.3 },
-      { deg: 165, r: 1.65, y: -0.53, sc: 1.25, spd: 0.95 },
-      { deg: 195, r: 1.4, y: -0.55, sc: 1.1,  spd: 1.15 },
-      { deg: 220, r: 1.7, y: -0.53, sc: 1.2,  spd: 1.05 },
-      { deg: 250, r: 1.3, y: -0.56, sc: 0.9,  spd: 1.35 },
-      { deg: 275, r: 1.55, y: -0.54, sc: 1.15, spd: 1.1 },
-      { deg: 305, r: 1.35, y: -0.56, sc: 1.05, spd: 1.25 },
-      { deg: 330, r: 1.6, y: -0.54, sc: 1.2,  spd: 1.0 },
-      // 2 rumpun di bibir pasir depan dekat user
-      { deg: 350, r: 1.15, y: -0.57, sc: 0.85, spd: 1.4 },
-      { deg: 10,  r: 1.1, y: -0.57, sc: 0.88, spd: 1.3 },
+      // 1. Rumpun Rumput Laut di Area Tengah (Center / Inner Seabed Clumps)
+      { deg: 25,  r: 0.70, sc: 0.90, spd: 1.3 },
+      { deg: 110, r: 0.85, sc: 0.95, spd: 1.15 },
+      { deg: 175, r: 0.60, sc: 0.85, spd: 1.35 },
+      { deg: 260, r: 0.75, sc: 0.90, spd: 1.2 },
+      { deg: 320, r: 0.50, sc: 0.80, spd: 1.4 },
+
+      // 2. Rumpun Rumput Laut Lingkar Luar (Outer Perimeter Clumps)
+      { deg: 20,  r: 1.4,  sc: 1.05, spd: 1.2 },
+      { deg: 45,  r: 1.7,  sc: 1.20, spd: 1.0 },
+      { deg: 75,  r: 1.5,  sc: 0.95, spd: 1.4 },
+      { deg: 110, r: 1.8,  sc: 1.15, spd: 1.1 },
+      { deg: 135, r: 1.45, sc: 1.00, spd: 1.3 },
+      { deg: 165, r: 1.75, sc: 1.25, spd: 0.95 },
+      { deg: 195, r: 1.5,  sc: 1.10, spd: 1.15 },
+      { deg: 220, r: 1.8,  sc: 1.20, spd: 1.05 },
+      { deg: 250, r: 1.4,  sc: 0.90, spd: 1.35 },
+      { deg: 275, r: 1.65, sc: 1.15, spd: 1.1 },
+      { deg: 305, r: 1.45, sc: 1.05, spd: 1.25 },
+      { deg: 330, r: 1.7,  sc: 1.20, spd: 1.0 },
+      // Rumpun dekat kaki user
+      { deg: 350, r: 1.15, sc: 0.85, spd: 1.4 },
+      { deg: 10,  r: 1.10, sc: 0.88, spd: 1.3 },
     ];
 
     return rawData.map((k, idx) => {
       const rad = (k.deg * Math.PI) / 180;
       const x = Number((k.r * Math.sin(rad)).toFixed(3));
       const z = Number((-k.r * Math.cos(rad)).toFixed(3));
+      // Tanam akar tepat di permukaan elevasi terrain
+      const y = Number(getTerrainHeight(x, z).toFixed(3));
+
       return {
-        pos: [x, k.y, z] as [number, number, number],
+        pos: [x, y, z] as [number, number, number],
         scale: k.sc,
         speed: k.spd,
         phase: (idx * 1.4) % (Math.PI * 2),
