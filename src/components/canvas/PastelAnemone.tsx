@@ -36,7 +36,6 @@ export function PastelAnemone({
   rotation = [0, 0, 0],
   scale = 0.042,
   tentacleTint,
-  glowColor = "#70e0d0",
 }: PastelAnemoneProps) {
   const groupRef = useRef<Group>(null);
   const tentacleMeshRef = useRef<Mesh | null>(null);

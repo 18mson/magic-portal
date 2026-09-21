@@ -47,16 +47,42 @@ export function generateStaticObstacles(): StaticObstacle[] {
     });
   });
 
-  // 2. Gugusan Karang Lingkar Luar (Outer Reef Formations)
+  // 2. Gugusan Karang Lingkar Menengah (Mid-Reef Formations, r = 1.6m - 2.2m)
+  const midReefs = [
+    { deg: 10,  r: 1.80, sc: 1.05, rot: 0.2, type: "coral" as const, rad: 0.45, h: 0.55 },
+    { deg: 90,  r: 1.90, sc: 1.10, rot: 2.0, type: "coral" as const, rad: 0.46, h: 0.54 },
+    { deg: 180, r: 1.85, sc: 1.05, rot: 3.8, type: "coral" as const, rad: 0.45, h: 0.55 },
+    { deg: 270, r: 1.95, sc: 1.15, rot: 5.4, type: "coral" as const, rad: 0.48, h: 0.58 },
+  ];
+
+  midReefs.forEach((reef, idx) => {
+    const rad = (reef.deg * Math.PI) / 180;
+    const x = Number((reef.r * Math.sin(rad)).toFixed(3));
+    const z = Number((-reef.r * Math.cos(rad)).toFixed(3));
+    const y = Number(getTerrainHeight(x, z).toFixed(3));
+
+    obstacles.push({
+      id: `reef-mid-${idx}`,
+      name: `Mid Coral Reef #${idx + 1}`,
+      pos: [x, y, z],
+      radius: reef.rad * reef.sc,
+      height: reef.h * reef.sc,
+      type: reef.type,
+      scale: reef.sc,
+      rotY: reef.rot,
+    });
+  });
+
+  // 3. Gugusan Karang Lingkar Luar Samudra (Outer Oceanic Reef Formations diperluas 2x lipat, r = 3.2m - 4.6m)
   const outerReefs = [
-    { deg: 10,  r: 1.80, sc: 1.15, rot: 0.2, type: "coral" as const, rad: 0.48, h: 0.58 },
-    { deg: 55,  r: 2.10, sc: 1.25, rot: 1.1, type: "coral" as const, rad: 0.52, h: 0.62 },
-    { deg: 100, r: 1.90, sc: 1.10, rot: 2.0, type: "coral" as const, rad: 0.46, h: 0.54 },
-    { deg: 145, r: 2.20, sc: 1.30, rot: 2.9, type: "coral" as const, rad: 0.55, h: 0.65 },
-    { deg: 190, r: 1.85, sc: 1.15, rot: 3.8, type: "coral" as const, rad: 0.48, h: 0.58 },
-    { deg: 235, r: 2.15, sc: 1.25, rot: 4.7, type: "coral" as const, rad: 0.52, h: 0.62 },
-    { deg: 280, r: 1.95, sc: 1.20, rot: 5.4, type: "coral" as const, rad: 0.50, h: 0.60 },
-    { deg: 325, r: 2.30, sc: 1.35, rot: 0.8, type: "coral" as const, rad: 0.56, h: 0.68 },
+    { deg: 25,  r: 3.60, sc: 1.35, rot: 0.5, type: "coral" as const, rad: 0.55, h: 0.65 },
+    { deg: 65,  r: 4.20, sc: 1.45, rot: 1.4, type: "coral" as const, rad: 0.60, h: 0.72 },
+    { deg: 115, r: 3.80, sc: 1.30, rot: 2.3, type: "coral" as const, rad: 0.54, h: 0.62 },
+    { deg: 155, r: 4.40, sc: 1.50, rot: 3.2, type: "coral" as const, rad: 0.62, h: 0.75 },
+    { deg: 210, r: 3.70, sc: 1.35, rot: 4.1, type: "coral" as const, rad: 0.56, h: 0.66 },
+    { deg: 250, r: 4.30, sc: 1.45, rot: 4.9, type: "coral" as const, rad: 0.60, h: 0.72 },
+    { deg: 295, r: 3.90, sc: 1.40, rot: 5.6, type: "coral" as const, rad: 0.58, h: 0.70 },
+    { deg: 340, r: 4.50, sc: 1.55, rot: 1.1, type: "coral" as const, rad: 0.65, h: 0.78 },
   ];
 
   outerReefs.forEach((reef, idx) => {

@@ -187,9 +187,9 @@ export function InteractiveWaterSurface() {
         <BubbleItem key={b.id} bubble={b} />
       ))}
 
-      {/* 4. Bidang Penangkap Sentuhan Raycast Interaktif (Touch & Click Raycaster) */}
+      {/* 4. Bidang Penangkap Sentuhan Raycast Interaktif Diperluas 2x (Touch & Click Raycaster) */}
       <mesh
-        position={[0, 0.22, -1.2]}
+        position={[0, 0.22, -2.0]}
         rotation={[-Math.PI / 2, 0, 0]}
         onPointerDown={(e) => {
           e.stopPropagation();
@@ -202,7 +202,7 @@ export function InteractiveWaterSurface() {
           ]);
         }}
       >
-        <planeGeometry args={[14, 14]} />
+        <planeGeometry args={[28, 28]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>

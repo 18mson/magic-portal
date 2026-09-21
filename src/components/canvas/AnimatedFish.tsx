@@ -14,6 +14,7 @@ import {
   MathUtils,
   AnimationMixer,
   AnimationAction,
+  Object3D,
 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import { feedingSystem } from "@/lib/simulation/feedingSystem";
@@ -56,51 +57,61 @@ export interface FishModelConfig {
     maxZ?: number;
   };
   pointsOfInterest?: Vector3[];
+  navigationPattern?: "wander" | "orbital";
+  orbitRadius?: number;       // Radius putaran orbit (meter, default: 1.6)
+  orbitHubDuration?: number;  // Durasi melingkar di satu area sebelum migrasi ke area baru (detik, default: 18.0)
+  orbitDirection?: 1 | -1;    // Arah putaran orbit: 1 (searah jarum jam) atau -1 (berlawanan)
   roughness?: number;
   metalness?: number;
 }
 
 /**
- * Titik-titik daya tarik terumbu karang default akuarium (Reef POIs)
+ * Titik-titik daya tarik terumbu karang default akuarium (Reef POIs) menyebar luas
  */
 const DEFAULT_REEF_POIS = [
-  new Vector3(0.0, 0.14, -0.95),   // Tengah depan tersorot cahaya surya
-  new Vector3(0.34, 0.06, -1.05),  // Karang tanduk marun kanan
-  new Vector3(0.18, -0.03, -1.20), // Melayang di atas celah karang meja
-  new Vector3(-0.26, -0.02, -1.18),// Formasi suaka anemon laut kiri
-  new Vector3(-0.34, 0.10, -0.96), // Arus terbuka kiri depan
+  new Vector3(-1.80, 0.25, -1.80), // Formasi karang barat
+  new Vector3(0.00, 0.20, -1.40),  // Pusat taman terumbu karang tersorot surya
+  new Vector3(1.80, 0.30, -1.90),  // Formasi karang timur
+  new Vector3(-0.90, 0.45, -2.60), // Arus terbuka utara-barat
+  new Vector3(1.10, 0.50, -2.80),  // Arus terbuka utara-timur
+  new Vector3(0.00, 0.65, -1.10),  // Lapisan perairan atas tengah
+  new Vector3(-2.40, 0.15, -2.80), // Perimeter karang jauh barat
+  new Vector3(2.40, 0.15, -2.80),  // Perimeter karang jauh timur
 ];
 
 /**
  * Memilih koordinat destinasi jelajah dinamis (kombinasi POIs terumbu dan eksplorasi bebas 3D)
+ * Didesain agar ikan menyebar luas di seluruh volume air, tidak bertumpuk di satu titik saja.
  */
 function pickReefDestination(
   pois: Vector3[],
   bounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }
 ): Vector3 {
-  // 65% peluang memilih titik POI terumbu karang dengan variasi luas
-  if (pois.length > 0 && Math.random() < 0.65) {
-    const idx = Math.floor(Math.random() * pois.length);
-    const base = pois[idx];
-    const spanX = bounds.maxX - bounds.minX;
-    const spanY = bounds.maxY - bounds.minY;
-    const spanZ = bounds.maxZ - bounds.minZ;
-    const jitterX = (Math.random() - 0.5) * Math.min(0.35, spanX * 0.45);
-    const jitterY = (Math.random() - 0.5) * Math.min(0.16, spanY * 0.45);
-    const jitterZ = (Math.random() - 0.5) * Math.min(0.30, spanZ * 0.45);
-
+  // 60% peluang eksplorasi bebas di seluruh volume 3D teritorial (menyebar luas secara dinamis)
+  if (Math.random() < 0.60 || pois.length === 0) {
     return new Vector3(
-      Math.max(bounds.minX, Math.min(bounds.maxX, base.x + jitterX)),
-      Math.max(bounds.minY, Math.min(bounds.maxY, base.y + jitterY)),
-      Math.max(bounds.minZ, Math.min(bounds.maxZ, base.z + jitterZ))
+      bounds.minX + Math.random() * (bounds.maxX - bounds.minX),
+      bounds.minY + Math.random() * (bounds.maxY - bounds.minY),
+      bounds.minZ + Math.random() * (bounds.maxZ - bounds.minZ)
     );
   }
 
-  // 35% peluang eksplorasi bebas di seluruh volume 3D teritorial (vertikalitas penuh atas - dasar)
+  // 40% peluang menjelajah di sekitar POI dengan variasi sebaran luas (tidak mengumpul kaku)
+  const idx = Math.floor(Math.random() * pois.length);
+  const base = pois[idx];
+  const spanX = bounds.maxX - bounds.minX;
+  const spanY = bounds.maxY - bounds.minY;
+  const spanZ = bounds.maxZ - bounds.minZ;
+
+  // Jitter proporsional dengan bentang area ikan (mencegah penumpukan)
+  const jitterX = (Math.random() - 0.5) * (spanX * 0.65);
+  const jitterY = (Math.random() - 0.5) * (spanY * 0.55);
+  const jitterZ = (Math.random() - 0.5) * (spanZ * 0.65);
+
   return new Vector3(
-    bounds.minX + Math.random() * (bounds.maxX - bounds.minX),
-    bounds.minY + Math.random() * (bounds.maxY - bounds.minY),
-    bounds.minZ + Math.random() * (bounds.maxZ - bounds.minZ)
+    Math.max(bounds.minX, Math.min(bounds.maxX, base.x + jitterX)),
+    Math.max(bounds.minY, Math.min(bounds.maxY, base.y + jitterY)),
+    Math.max(bounds.minZ, Math.min(bounds.maxZ, base.z + jitterZ))
   );
 }
 
@@ -140,6 +151,10 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       maxZ: -0.88,
     },
     pointsOfInterest = DEFAULT_REEF_POIS,
+    navigationPattern,
+    orbitRadius = 1.6,
+    orbitHubDuration = 18.0,
+    orbitDirection = 1,
     roughness = 0.35,
     metalness = 0.05,
   } = config;
@@ -154,7 +169,33 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
   const { scene, animations } = useGLTF(modelPath);
 
   // 1. Kloning scene & skeleton unik tiap instansi ikan
-  const isLargeCreature = (visualScale ?? 1.0) > 0.35 && !species?.toLowerCase().includes("clown");
+  const isLargeCreature = useMemo(() => {
+    const s = (species || "").toLowerCase();
+    const i = (id || "").toLowerCase();
+    return (
+      s.includes("shark") ||
+      s.includes("hiu") ||
+      s.includes("orca") ||
+      s.includes("paus") ||
+      s.includes("whale") ||
+      s.includes("dolphin") ||
+      s.includes("lumba") ||
+      s.includes("stingray") ||
+      s.includes("pari") ||
+      s.includes("turtle") ||
+      s.includes("penyu") ||
+      s.includes("kura") ||
+      i.includes("shark") ||
+      i.includes("orca") ||
+      i.includes("whale") ||
+      i.includes("dolphin") ||
+      i.includes("stingray") ||
+      i.includes("turtle") ||
+      i.includes("penyu") ||
+      i.includes("kura")
+    );
+  }, [species, id]);
+
   const clonedScene = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
     clone.traverse((child) => {
@@ -200,7 +241,10 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
             times[i] -= minTime;
           }
         });
-        clip.duration = Math.max(0.1, maxTime - minTime);
+        clip.duration = Math.max(0.2, maxTime - minTime);
+        clip.resetDuration();
+      } else {
+        clip.duration = Math.max(0.2, clip.duration);
         clip.resetDuration();
       }
 
@@ -213,6 +257,45 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
   // Reference action aktif
   const activeActionRef = useRef<AnimationAction | null>(null);
   const activeClipNameRef = useRef<string>(swimClipKey);
+
+  // Cache bone references untuk secondary procedural animation (misal tukik / bayi penyu)
+  const turtleBonesRef = useRef<{
+    head: Object3D | null;
+    tail1: Object3D | null;
+    tail2: Object3D | null;
+    tail3: Object3D | null;
+    flipperL: Object3D | null;
+    flipperR: Object3D | null;
+    flipperBL: Object3D | null;
+    flipperBR: Object3D | null;
+  } | null>(null);
+
+  useEffect(() => {
+    const isTurtle =
+      species.toLowerCase().includes("turtle") ||
+      species.toLowerCase().includes("penyu") ||
+      id?.toLowerCase().includes("turtle");
+    if (isTurtle) {
+      turtleBonesRef.current = {
+        head: clonedScene.getObjectByName("Head_029") || null,
+        tail1: clonedScene.getObjectByName("tail001_06") || null,
+        tail2: clonedScene.getObjectByName("tail002_07") || null,
+        tail3: clonedScene.getObjectByName("tail003_08") || null,
+        flipperL:
+          clonedScene.getObjectByName("Foot_F02_L_018") ||
+          clonedScene.getObjectByName("Thigh_F01_L_017") ||
+          null,
+        flipperR:
+          clonedScene.getObjectByName("Foot_F02_R_023") ||
+          clonedScene.getObjectByName("Thigh_F01_R_022") ||
+          null,
+        flipperBL: clonedScene.getObjectByName("Foot_B_L002_010") || null,
+        flipperBR: clonedScene.getObjectByName("Foot_B_R002_014") || null,
+      };
+    } else {
+      turtleBonesRef.current = null;
+    }
+  }, [clonedScene, species, id]);
 
   // Batas area aman akuarium
   const safeBounds = useMemo(
@@ -236,7 +319,29 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
   );
   const currentHeadingRef = useRef<number>(initialHeading ?? 0);
   const currentPitchRef = useRef<number>(0);
+  const currentRollRef = useRef<number>(0);             // Kemiringan badan (procedural banking roll)
+  const currentAngularVelRef = useRef<number>(0);       // Kecepatan putar sudut (rad/s smoothed)
   const surgeTimerRef = useRef<number>(0);
+
+  // Pola navigasi melingkar otonom (orbital loitering & migrating) untuk koloni ikan pari di permukaan air
+  const isOrbital = useMemo(() => {
+    const s = (species || "").toLowerCase();
+    const i = (id || "").toLowerCase();
+    return (
+      navigationPattern === "orbital" ||
+      s.includes("stingray") ||
+      s.includes("pari") ||
+      i.includes("stingray") ||
+      i.includes("pari")
+    );
+  }, [navigationPattern, species, id]);
+
+  const orbitHubIdxRef = useRef<number>(0);
+  const orbitAngleRef = useRef<number>(
+    initialHeading !== undefined ? initialHeading + Math.PI / 2 : 0
+  );
+  const orbitTimerRef = useRef<number>(orbitHubDuration);
+  const isMigratingToHubRef = useRef<boolean>(false);
 
   // State perilaku (Swimming, Pausing, Feeding)
   const behaviorStateRef = useRef<"swimming" | "pausing" | "feeding">("swimming");
@@ -263,11 +368,14 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
     };
   }, [fishId, species, collisionRadius]);
 
-  // Inisialisasi awal animasi renang & timer
+  // Inisialisasi awal animasi renang & timer (efek samping murni di dalam useEffect, aman untuk React Compiler)
   useEffect(() => {
     if (initialHeading === undefined) {
       currentHeadingRef.current = (Math.random() * 2 - 1) * Math.PI;
+      orbitAngleRef.current = Math.random() * Math.PI * 2;
     }
+    orbitHubIdxRef.current = Math.floor(Math.random() * Math.max(1, pointsOfInterest.length));
+    orbitTimerRef.current = orbitHubDuration + Math.random() * 6.0;
     surgeTimerRef.current = Math.random() * 10.0;
     stateTimerRef.current = swimDurationMin + Math.random() * 4.0;
 
@@ -284,7 +392,15 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
     return () => {
       mixer.stopAllAction();
     };
-  }, [actions, mixer, swimClipKey, swimDurationMin, initialHeading]);
+  }, [
+    actions,
+    mixer,
+    swimClipKey,
+    swimDurationMin,
+    initialHeading,
+    orbitHubDuration,
+    pointsOfInterest.length,
+  ]);
 
   // Main render loop
   useFrame((_, delta) => {
@@ -312,12 +428,12 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
         }
       }
 
-      // 2b. Filter batas teritorial (ikan karang tidak mengejar pakan yang jauh di luar terumbu karangnya)
+      // 2b. Filter batas teritorial (ikan karang mengejar pakan dalam perimeter teritorialnya yang luas)
       if (
-        p.position[0] < safeBounds.minX - 0.28 ||
-        p.position[0] > safeBounds.maxX + 0.28 ||
-        p.position[2] < safeBounds.minZ - 0.28 ||
-        p.position[2] > safeBounds.maxZ + 0.28
+        p.position[0] < safeBounds.minX - 0.60 ||
+        p.position[0] > safeBounds.maxX + 0.60 ||
+        p.position[2] < safeBounds.minZ - 0.60 ||
+        p.position[2] > safeBounds.maxZ + 0.60
       ) {
         continue;
       }
@@ -359,9 +475,18 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
       while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
 
-      // Belokkan kepala dengan sigap ke arah pakan
-      const maxTurn = turnSpeed * clampedDelta;
-      currentHeadingRef.current += MathUtils.clamp(diffYaw, -maxTurn, maxTurn);
+      // Belokkan kepala dengan kemudi sigap namun halus ke arah pakan
+      const effectiveTurn = turnSpeed ?? (isLargeCreature ? 1.8 : 4.5);
+      const maxTurn = effectiveTurn * clampedDelta;
+      const clampedTurn = MathUtils.clamp(diffYaw, -maxTurn, maxTurn);
+
+      const targetAngularVel = clampedTurn / clampedDelta;
+      currentAngularVelRef.current = MathUtils.lerp(
+        currentAngularVelRef.current,
+        targetAngularVel,
+        Math.min(1.0, clampedDelta * (isLargeCreature ? 5.0 : 8.0))
+      );
+      currentHeadingRef.current += currentAngularVelRef.current * clampedDelta;
 
       const forwardX = Math.sin(currentHeadingRef.current);
       const forwardZ = Math.cos(currentHeadingRef.current);
@@ -370,10 +495,10 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       const dotAlignment = forwardX * dirPelletX + forwardZ * dirPelletZ;
 
       // Hanya melaju jika kepala sudah mengarah (Forward-only, tidak ada gerakan mundur)
-      if (dotAlignment < 0.82) {
-        moveSpeed = 0.0;
+      if (dotAlignment < 0.80) {
+        moveSpeed = baseCruisingSpeed * 0.35; // Tetap melaju pelan agar belokan melengkung
       } else {
-        const sprintFactor = Math.pow((dotAlignment - 0.82) / 0.18, 1.4);
+        const sprintFactor = Math.pow((dotAlignment - 0.80) / 0.20, 1.4);
         const sprint = MathUtils.clamp(distHoriz * 1.3, baseCruisingSpeed * 1.3, maxSprintSpeed);
         moveSpeed = sprint * sprintFactor;
       }
@@ -386,11 +511,20 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       if (minPelletDist < biteDistance) {
         feedingSystem.consumePellet(nearestPellet.id);
         biteTimerRef.current = 1.3;
-        behaviorStateRef.current = "pausing";
+        behaviorStateRef.current = isOrbital ? "swimming" : "pausing";
         stateTimerRef.current = pauseDurationMin;
-        wanderTargetRef.current = pickReefDestination(pointsOfInterest, safeBounds);
+        if (!isOrbital) {
+          wanderTargetRef.current = pickReefDestination(pointsOfInterest, safeBounds);
+        }
       }
-    } else if (behaviorStateRef.current === "pausing") {
+    } else if (behaviorStateRef.current === "pausing" && !isOrbital) {
+      // Redam laju putar saat istirahat
+      currentAngularVelRef.current = MathUtils.lerp(
+        currentAngularVelRef.current,
+        0,
+        Math.min(1.0, clampedDelta * 3.5)
+      );
+
       // Mengapung santai di tempat saat ini (idle breathing hover)
       const idleMicroDrift = Math.sin(stateTimerRef.current * 2.2) * 0.003;
       const forwardX = Math.sin(currentHeadingRef.current);
@@ -405,7 +539,65 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
         stateTimerRef.current = swimDurationMin + Math.random() * (swimDurationMax - swimDurationMin);
       }
     } else {
-      // Berenang jelajah otonom menuju target acak
+      // 3.a. Navigasi Melingkar (Orbital Loitering) atau Jelajah Bebas
+      if (isOrbital && pointsOfInterest.length > 0) {
+        // Logika patroli melingkar di dekat permukaan laut
+        orbitTimerRef.current -= clampedDelta;
+
+        if (orbitTimerRef.current <= 0) {
+          // Waktu di area ini habis, beralih migrasi ke area / hub permukaan baru
+          orbitHubIdxRef.current =
+            (orbitHubIdxRef.current + 1 + Math.floor(Math.random() * (pointsOfInterest.length - 1))) %
+            pointsOfInterest.length;
+          orbitTimerRef.current = orbitHubDuration + (Math.random() * 8.0 - 4.0);
+          isMigratingToHubRef.current = true;
+        }
+
+        const curHub = pointsOfInterest[orbitHubIdxRef.current % pointsOfInterest.length];
+        const hubX = curHub.x;
+        const hubY = curHub.y;
+        const hubZ = curHub.z;
+
+        if (isMigratingToHubRef.current) {
+          const distToNewHub = Math.hypot(currentPosRef.current.x - hubX, currentPosRef.current.z - hubZ);
+          if (distToNewHub <= orbitRadius * 1.35) {
+            // Sudah sampai di lingkar luar area baru, mulai berputar melingkar di area ini
+            isMigratingToHubRef.current = false;
+            orbitAngleRef.current = Math.atan2(
+              currentPosRef.current.z - hubZ,
+              currentPosRef.current.x - hubX
+            );
+          } else {
+            // Meluncur anggun menuju perimeter hub baru, tetap di perairan atas dekat permukaan
+            wanderTargetRef.current.x = hubX;
+            wanderTargetRef.current.y = MathUtils.clamp(
+              hubY + Math.sin(surgeTimerRef.current * 0.8) * 0.035,
+              safeBounds.minY,
+              safeBounds.maxY
+            );
+            wanderTargetRef.current.z = hubZ;
+          }
+        }
+
+        if (!isMigratingToHubRef.current) {
+          // Mengorbit mulus di sekitar hub permukaan saat ini
+          const angularSpeed = (baseCruisingSpeed / Math.max(0.6, orbitRadius)) * orbitDirection;
+          orbitAngleRef.current += angularSpeed * clampedDelta;
+
+          // Lead-angle ke depan pada lingkaran orbit untuk menghasilkan kemudi belok yang mulus
+          const leadAngle = orbitAngleRef.current + 0.42 * Math.sign(orbitDirection);
+          wanderTargetRef.current.x = hubX + Math.cos(leadAngle) * orbitRadius;
+          // Ketinggian tetap terkunci di lapisan atas dekat permukaan laut (dengan gelombang kepakan anggun)
+          wanderTargetRef.current.y = MathUtils.clamp(
+            hubY + Math.sin(orbitAngleRef.current * 1.6) * 0.035,
+            safeBounds.minY,
+            safeBounds.maxY
+          );
+          wanderTargetRef.current.z = hubZ + Math.sin(leadAngle) * orbitRadius;
+        }
+      }
+
+      // Berenang jelajah otonom menuju target
       const toTargetX = wanderTargetRef.current.x - currentPosRef.current.x;
       const toTargetY = wanderTargetRef.current.y - currentPosRef.current.y;
       const toTargetZ = wanderTargetRef.current.z - currentPosRef.current.z;
@@ -417,11 +609,43 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
         let diffYaw = targetYaw - currentHeadingRef.current;
         while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
         while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
-        currentHeadingRef.current += diffYaw * Math.min(1.0, clampedDelta * 3.2);
+
+        // Kecepatan belok terukur: makhluk besar (hiu/paus/pari) berbelok anggun & melengkung
+        const effectiveTurn = turnSpeed ?? (isLargeCreature ? 1.5 : 3.2);
+        const maxTurn = effectiveTurn * clampedDelta;
+        const clampedTurn = MathUtils.clamp(diffYaw, -maxTurn, maxTurn);
+
+        // Smoothing percepatan sudut (menghilangkan sentakan/patah tiba-tiba)
+        const targetAngularVel = clampedTurn / clampedDelta;
+        currentAngularVelRef.current = MathUtils.lerp(
+          currentAngularVelRef.current,
+          targetAngularVel,
+          Math.min(1.0, clampedDelta * (isLargeCreature ? 3.5 : 6.0))
+        );
+        currentHeadingRef.current += currentAngularVelRef.current * clampedDelta;
+      } else {
+        currentAngularVelRef.current = MathUtils.lerp(
+          currentAngularVelRef.current,
+          0,
+          Math.min(1.0, clampedDelta * 4.0)
+        );
       }
 
-      const surgePulse = 1.0 + Math.sin(surgeTimerRef.current * 3.8) * 0.16;
-      moveSpeed = baseCruisingSpeed * surgePulse;
+      // Dinamika kecepatan renang & busur belok (curved turn arc):
+      // Saat berbelok atau putar balik 180°, ikan TIDAK berhenti pivot di tempat, melainkan tetap melaju
+      // ke depan (~70-85% laju) sehingga membentuk busur lingkaran yang luas dan alami.
+      let currentYawDiff = targetYaw - currentHeadingRef.current;
+      while (currentYawDiff > Math.PI) currentYawDiff -= Math.PI * 2;
+      while (currentYawDiff < -Math.PI) currentYawDiff += Math.PI * 2;
+
+      const turnArcFactor = isLargeCreature
+        ? MathUtils.clamp(1.0 - (Math.abs(currentYawDiff) / Math.PI) * 0.32, 0.68, 1.0)
+        : MathUtils.clamp(1.0 - (Math.abs(currentYawDiff) / Math.PI) * 0.22, 0.78, 1.0);
+
+      const tailFreq = isLargeCreature ? 2.2 : 3.8;
+      const surgeAmp = isLargeCreature ? 0.10 : 0.16;
+      const surgePulse = 1.0 + Math.sin(surgeTimerRef.current * tailFreq) * surgeAmp;
+      moveSpeed = baseCruisingSpeed * surgePulse * turnArcFactor;
 
       const forwardX = Math.sin(currentHeadingRef.current);
       const forwardZ = Math.cos(currentHeadingRef.current);
@@ -429,7 +653,7 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       currentPosRef.current.z += forwardZ * moveSpeed * clampedDelta;
       currentPosRef.current.y += toTargetY * Math.min(1.0, 2.5 * clampedDelta);
 
-      if (distTotal < 0.18 || stateTimerRef.current <= 0) {
+      if (!isOrbital && (distTotal < 0.18 || stateTimerRef.current <= 0)) {
         if (Math.random() < 0.5) {
           behaviorStateRef.current = "pausing";
           stateTimerRef.current = pauseDurationMin + Math.random() * (pauseDurationMax - pauseDurationMin);
@@ -460,7 +684,8 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       let diffSep = sepAngle - currentHeadingRef.current;
       while (diffSep > Math.PI) diffSep -= Math.PI * 2;
       while (diffSep < -Math.PI) diffSep += Math.PI * 2;
-      currentHeadingRef.current += diffSep * Math.min(1.0, 3.2 * clampedDelta);
+      const sepTurn = MathUtils.clamp(diffSep, -2.5 * clampedDelta, 2.5 * clampedDelta);
+      currentHeadingRef.current += sepTurn;
     }
 
     // Batasi posisi tetap berada di dalam teritorial safeBounds spesies
@@ -476,7 +701,7 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       nearestPellet ? minPelletDist : Infinity
     );
 
-    // 4. Orientasi 3D Halus (Yaw Kemudi + Pitch Menukik/Mendaki Dinamis)
+    // 4. Orientasi 3D Halus (Yaw Kemudi + Pitch Menukik/Mendaki + Procedural Banking Roll)
     let targetPitch = 0;
     if (behaviorStateRef.current === "feeding" && nearestPellet) {
       const toPelletY = nearestPellet.position[1] - currentPosRef.current.y;
@@ -497,11 +722,30 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
     }
     currentPitchRef.current += (targetPitch - currentPitchRef.current) * Math.min(1.0, clampedDelta * 3.0);
 
-    targetEuler.set(currentPitchRef.current, currentHeadingRef.current, 0, "YXZ");
+    // 4b. Procedural Banking (Kemiringan Tubuh Saat Berbelok)
+    // Ketika belok ke kanan (angularVel > 0), badan ikan miring ke dalam kurva ke kanan (roll negatif).
+    // Ketika belok ke kiri (angularVel < 0), badan ikan miring ke dalam kurva ke kiri (roll positif).
+    const bankStrength = isLargeCreature ? 0.32 : 0.22;
+    const maxBankAngle = isLargeCreature ? 0.52 : 0.65; // ~30° - 37°
+    const targetRoll = -MathUtils.clamp(currentAngularVelRef.current * bankStrength, -maxBankAngle, maxBankAngle);
+
+    // Inersia roll dinamis (makhluk berbobot besar memiliki transisi kemiringan yang berat dan mantap)
+    const rollInertiaSpeed = isLargeCreature ? 3.0 : 4.8;
+    currentRollRef.current = MathUtils.lerp(
+      currentRollRef.current,
+      targetRoll,
+      Math.min(1.0, clampedDelta * rollInertiaSpeed)
+    );
+
+    // Buoyancy mikro sway alami mengikuti dorongan sirip ekor
+    const tailFreq = isLargeCreature ? 2.2 : 3.8;
+    const swimSway = Math.sin(surgeTimerRef.current * tailFreq) * (isLargeCreature ? 0.022 : 0.038);
+
+    targetEuler.set(currentPitchRef.current, currentHeadingRef.current, currentRollRef.current + swimSway, "YXZ");
     targetQuat.setFromEuler(targetEuler);
     root.quaternion.copy(targetQuat);
 
-    const bob = Math.sin(surgeTimerRef.current * 3.8) * 0.005;
+    const bob = Math.sin(surgeTimerRef.current * tailFreq) * 0.005;
     root.position.set(
       currentPosRef.current.x,
       currentPosRef.current.y + bob,
@@ -550,6 +794,45 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
         activeClipNameRef.current = targetClip;
       } else {
         nextAction.setEffectiveTimeScale(targetTimeScale);
+      }
+    }
+
+    // 8. Procedural Secondary Animation untuk Bayi Penyu (Sirip Mendayung, Ekor Bergoyang Lincah, & Kepala Menoleh)
+    const tb = turtleBonesRef.current;
+    if (tb) {
+      const isPaused = behaviorStateRef.current === "pausing";
+      const flapSpeed = isPaused ? 3.0 : (moveSpeed > 0.08 ? 7.2 : 5.0);
+      const flapPhase = surgeTimerRef.current * flapSpeed;
+
+      // Kibasan sirip depan lincah (breaststroke flipper wave)
+      const flipperFlap = Math.sin(flapPhase) * (isPaused ? 0.15 : 0.42);
+      const flipperPitch = Math.cos(flapPhase) * (isPaused ? 0.10 : 0.26);
+      if (tb.flipperL) {
+        tb.flipperL.rotation.z += flipperFlap;
+        tb.flipperL.rotation.x += flipperPitch;
+      }
+      if (tb.flipperR) {
+        tb.flipperR.rotation.z -= flipperFlap;
+        tb.flipperR.rotation.x += flipperPitch;
+      }
+
+      // Dayungan sirip belakang
+      const rearFlap = Math.sin(flapPhase - 1.2) * (isPaused ? 0.10 : 0.28);
+      if (tb.flipperBL) tb.flipperBL.rotation.z += rearFlap;
+      if (tb.flipperBR) tb.flipperBR.rotation.z -= rearFlap;
+
+      // Kibasan ekor bergoyang aktif & lincah
+      const tailWag = Math.sin(surgeTimerRef.current * (isPaused ? 4.5 : 9.2)) * 0.38;
+      if (tb.tail1) tb.tail1.rotation.y += tailWag;
+      if (tb.tail2) tb.tail2.rotation.y += tailWag * 0.8;
+      if (tb.tail3) tb.tail3.rotation.y += tailWag * 0.6;
+
+      // Kepala mengangguk & menoleh penasaran
+      const headBob = Math.sin(surgeTimerRef.current * 4.0) * 0.16;
+      const headLook = Math.sin(surgeTimerRef.current * 1.8) * 0.24;
+      if (tb.head) {
+        tb.head.rotation.x += headBob;
+        tb.head.rotation.y += headLook;
       }
     }
   });

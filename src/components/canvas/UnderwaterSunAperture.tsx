@@ -19,9 +19,9 @@ interface UnderwaterSunApertureProps {
 export const UnderwaterSunAperture = forwardRef<Mesh, UnderwaterSunApertureProps>(
   function UnderwaterSunAperture(
     {
-      position = [1.0, 5.0, -1.2],
-      radius = 0.9,
-      color = "#fff6db", // Rona keemasan hangat pastel
+      position = [0.8, 5.0, -1.3],
+      radius = 0.85,
+      color = "#fffbf0",
     },
     ref
   ) {
@@ -34,19 +34,32 @@ export const UnderwaterSunAperture = forwardRef<Mesh, UnderwaterSunApertureProps
             color={color}
             side={DoubleSide}
             transparent={true}
-            opacity={0.85}
+            opacity={0.88}
             depthWrite={false}
           />
         </mesh>
 
-        {/* Lingkar pendaran cahaya lembut di sekeliling aperture */}
+        {/* Lingkar pendaran cahaya hangat di sekeliling aperture */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <circleGeometry args={[radius * 1.8, 32]} />
           <meshBasicMaterial
-            color="#ffd285"
+            color="#fed7aa"
             side={DoubleSide}
             transparent={true}
-            opacity={0.35}
+            opacity={0.28}
+            blending={AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+
+        {/* Korona atmosferik keemasan lembut */}
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[radius * 2.8, 32]} />
+          <meshBasicMaterial
+            color="#fbbf24"
+            side={DoubleSide}
+            transparent={true}
+            opacity={0.10}
             blending={AdditiveBlending}
             depthWrite={false}
           />

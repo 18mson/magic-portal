@@ -47,21 +47,23 @@ const fragmentShader = `
   varying vec3 vViewPosition;
 
   void main() {
-    // vUv.y: 0.0 di atas (asal sinar), 1.0 di bawah (kedalaman air)
-    // Gunakan power 2.2 agar berkas memudar lembut di air sebelum menyentuh dasar laut
-    // Ini mencegah penumpukan cahaya putih pekat di lantai/rumput laut
-    float verticalFade = pow(1.0 - vUv.y, 2.2) * smoothstep(0.0, 0.08, vUv.y);
+    // 1. Penetrasi Cahaya Vertikal: Menembus ke kedalaman air secara halus
+    float topFade = smoothstep(0.0, 0.05, vUv.y);
+    float bottomFade = smoothstep(1.0, 0.82, vUv.y);
+    float verticalPenetration = pow(1.0 - vUv.y * 0.75, 1.25) * topFade * bottomFade;
 
-    // Lembutkan pinggiran silinder (fresnel falloff) agar menyerupai kabut cahaya volumetrik
+    // 2. Lembutkan pinggiran silinder (volumetric fresnel falloff halus)
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(vViewPosition);
     float fresnel = abs(dot(normal, viewDir));
-    float edgeSoftness = pow(fresnel, 0.7);
+    float edgeSoftness = pow(fresnel, 0.68);
 
-    // Animasi gelombang bias air laut halus
-    float wave = 0.88 + 0.12 * sin(time * speed + phase + vUv.y * 6.0);
+    // 3. Garis-garis bias caustics dinamis dalam berkas cahaya matahari (sunbeam caustics streaks)
+    float caustics = 0.82 + 0.18 * sin(vUv.x * 24.0 + time * speed * 0.8 + phase) * sin(vUv.y * 7.0 - time * 0.25);
+    float pulse = 0.92 + 0.08 * sin(time * speed * 1.1 + phase);
 
-    float alpha = verticalFade * edgeSoftness * intensity * wave;
+    // 4. Alpha komposit elegan tanpa memutihkan air laut
+    float alpha = verticalPenetration * edgeSoftness * intensity * caustics * pulse;
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -78,8 +80,8 @@ function SingleShaft({
 
   const uniforms = useMemo(
     () => ({
-      // Warna keemasan hangat pastel khas Abzû (kontras elegan dengan teal laut)
-      color: { value: new Color("#fff1cc") },
+      // Rona keemasan hangat surya tropis (Sunlit Golden Glow)
+      color: { value: new Color("#fff4cc") },
       time: { value: 0 },
       intensity: { value: config.intensity },
       speed: { value: config.speed },
@@ -116,12 +118,14 @@ function SingleShaft({
 }
 
 /**
- * Komponen Berkas Cahaya Matahari Volumetrik 3D Ala Abzû:
- * - Berkas sinar matahari menembus dari bukaan air di atas (y = 4.8m - 5.2m)
- *   menyerong lembut ke arah ekosistem karang dan dasar laut.
- * - Rona keemasan hangat pastel (#fff1cc / #ffe3a1) yang subtle, memberikan depth
- *   dan kehangatan visual tanpa menutupi visibilitas ikan maupun terumbu karang.
- * - Efisiensi tinggi: kalkulasi shader murni GPU, aman dan stabil 60 FPS di WebXR AR HP Android.
+ * Komponen Berkas Cahaya Matahari Volumetrik 3D:
+ * - Jumlah berkas ramping (5 berkas tunggal), tidak menumpuk di tengah.
+ * - Menyebar luas melintasi seluruh bentang eksplorasi samudra 24 meter:
+ *   1. Sisi Barat / Hutan Kelp (X = -2.6)
+ *   2. Palung Horizon Barat Laut / Jalur Hiu (X = -3.8, Z = -3.6)
+ *   3. Pusat Karang Utama (X = +0.6, Z = -1.3, satu berkas bersih)
+ *   4. Sisi Timur / Gugusan Karang Kanan (X = +2.2)
+ *   5. Horizon Samudra Timur Laut / Jalur Orca (X = +3.8, Z = -3.8)
  */
 export function VolumetricLightShafts() {
   const groupRef = useRef<Group>(null);
@@ -131,103 +135,87 @@ export function VolumetricLightShafts() {
     sharedTime.current = state.clock.getElapsedTime();
   });
 
-  // Berkas sinar matahari menembus dari permukaan air atas ke dalam air
+  // 5 berkas cahaya terdistribusi jauh lebih renggang ke seluruh penjuru samudra (lebar renggang ~4-6 meter antar berkas)
   const shafts: ShaftConfig[] = useMemo(() => {
     return [
-      // 1. Berkas Utama: Dari bukaan surya atas menembus ke pusat diorama
+      // 1. Berkas Jauh Barat: Menembus ke area hutan kelp & kanopi karang barat kejauhan
       {
-        pos: [0.8, 4.8, -1.0],
-        rot: [0.18, 0.25, -0.15],
-        topRadius: 0.15,
-        bottomRadius: 1.1,
-        height: 6.2,
-        intensity: 0.15, // Subtle & dreamy
+        pos: [-5.2, 5.1, -2.8],
+        rot: [0.12, -0.28, 0.22],
+        topRadius: 0.16,
+        bottomRadius: 1.05,
+        height: 7.2,
+        intensity: 0.22,
         speed: 1.0,
-        phase: 0.0,
-      },
-      {
-        pos: [1.3, 4.9, -1.4],
-        rot: [0.12, 0.1, -0.22],
-        topRadius: 0.2,
-        bottomRadius: 1.3,
-        height: 6.4,
-        intensity: 0.13,
-        speed: 1.15,
-        phase: 1.8,
-      },
-      {
-        pos: [0.4, 4.7, -0.7],
-        rot: [0.22, 0.35, -0.08],
-        topRadius: 0.12,
-        bottomRadius: 0.95,
-        height: 6.0,
-        intensity: 0.14,
-        speed: 0.9,
-        phase: 3.2,
+        phase: 0.8,
       },
 
-      // 2. Berkas Sekunder: Membiaskan sinar ke area karang depan & samping
+      // 2. Berkas Palung Barat Laut: Menembus ke palung laut dalam jalur patroli hiu
       {
-        pos: [-0.6, 4.6, -1.1],
-        rot: [0.15, -0.2, 0.18],
-        topRadius: 0.15,
-        bottomRadius: 1.05,
-        height: 5.8,
-        intensity: 0.12,
-        speed: 1.05,
-        phase: 0.9,
-      },
-      {
-        pos: [1.8, 4.8, -0.5],
-        rot: [0.08, 0.4, -0.25],
+        pos: [-4.2, 5.2, -6.2],
+        rot: [0.22, -0.18, 0.14],
         topRadius: 0.18,
         bottomRadius: 1.15,
-        height: 6.1,
-        intensity: 0.12,
-        speed: 1.2,
-        phase: 2.4,
+        height: 7.8,
+        intensity: 0.19,
+        speed: 0.85,
+        phase: 2.3,
       },
 
-      // 3. Berkas Atmosferik Lingkar Luar: Memberikan kedalaman 360°
+      // 3. Berkas Pusat Karang Utama: SATU berkas ramping terfokus anggun di celah karang tengah
       {
-        pos: [-1.4, 4.5, -2.0],
-        rot: [0.2, -0.3, 0.15],
-        topRadius: 0.15,
-        bottomRadius: 1.0,
-        height: 5.9,
-        intensity: 0.11,
-        speed: 0.95,
-        phase: 4.1,
-      },
-      {
-        pos: [2.1, 4.7, -2.2],
-        rot: [0.18, 0.3, -0.2],
-        topRadius: 0.2,
-        bottomRadius: 1.2,
-        height: 6.3,
-        intensity: 0.11,
+        pos: [0.2, 5.1, -1.8],
+        rot: [0.14, 0.05, -0.06],
+        topRadius: 0.18,
+        bottomRadius: 0.95,
+        height: 7.0,
+        intensity: 0.25,
         speed: 1.1,
-        phase: 5.3,
+        phase: 0.0,
+      },
+
+      // 4. Berkas Jauh Timur: Menembus ke gugusan karang anemon pastel timur kejauhan
+      {
+        pos: [4.8, 5.1, -2.6],
+        rot: [0.10, 0.30, -0.22],
+        topRadius: 0.16,
+        bottomRadius: 1.05,
+        height: 7.2,
+        intensity: 0.22,
+        speed: 1.05,
+        phase: 3.1,
+      },
+
+      // 5. Berkas Palung Timur Laut: Menembus ke samudra lepas cakrawala jalur Orca
+      {
+        pos: [4.6, 5.2, -6.5],
+        rot: [0.20, 0.22, -0.14],
+        topRadius: 0.18,
+        bottomRadius: 1.15,
+        height: 7.8,
+        intensity: 0.19,
+        speed: 0.95,
+        phase: 4.5,
       },
     ];
   }, []);
 
   return (
     <group ref={groupRef}>
-      {/* Berkas sinar matahari tembus air ala Abzû */}
+      {/* Berkas sinar matahari tembus air bersih & anggun */}
       {shafts.map((shaft, i) => (
         <SingleShaft key={i} config={shaft} sharedTime={sharedTime} />
       ))}
 
-      {/* Partikel debu plankton / bias air laut keemasan */}
+      {/* Partikel debu plankton keemasan lembut */}
       <Sparkles
-        count={70}
-        scale={[7.0, 4.5, 7.0]}
-        position={[0.5, 1.2, -1.0]}
-        size={2.8}
-        speed={0.25}
-        opacity={0.45}
-        color="#fef3c7" // Warm sunlit plankton dust
+        count={65}
+        scale={[18.0, 5.5, 18.0]}
+        position={[0.0, 1.5, -2.5]}
+        size={2.6}
+        speed={0.22}
+        opacity={0.35}
+        color="#fef3c7"
       />
     </group>
   );

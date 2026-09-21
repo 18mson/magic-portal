@@ -119,12 +119,12 @@ function SingleKelpClump({
  * - Memiliki bentuk 3D bersilangan penuh, meliuk lembut mengikuti arus air bawah laut.
  */
 export function KelpForest3D() {
-  const kelpGeo = useMemo(() => create3DKelpGeometry(1.25, 0.28), []);
+  const kelpGeo = useMemo(() => create3DKelpGeometry(0.95, 0.22), []);
 
   // Ref untuk uniforms yang dapat dimutasi setiap frame tanpa melanggar immutability rules React
   const uniformsRef = useRef({
     uTime: { value: 0 },
-    uKelpHeight: { value: 1.25 },
+    uKelpHeight: { value: 0.95 },
   });
 
   // Shared material tunggal dengan injeksi Vertex Shader GPU (onBeforeCompile)
@@ -198,29 +198,37 @@ export function KelpForest3D() {
 
   const kelpClumps: KelpClumpConfig[] = useMemo(() => {
     const rawData = [
-      // 1. Rumpun Rumput Laut di Area Tengah (Center / Inner Seabed Clumps)
-      { deg: 25,  r: 0.70, sc: 0.90, spd: 1.3 },
-      { deg: 110, r: 0.85, sc: 0.95, spd: 1.15 },
-      { deg: 175, r: 0.60, sc: 0.85, spd: 1.35 },
-      { deg: 260, r: 0.75, sc: 0.90, spd: 1.2 },
-      { deg: 320, r: 0.50, sc: 0.80, spd: 1.4 },
+      // 1. Rumpun Rumput Laut Kecil & Sedang di Area Tengah & Depan (Dikecilkan agar tidak menutupi view karang)
+      { deg: 25,  r: 0.70, sc: 0.45, spd: 1.3 },
+      { deg: 110, r: 0.85, sc: 0.52, spd: 1.15 },
+      { deg: 175, r: 0.60, sc: 0.40, spd: 1.35 },
+      { deg: 260, r: 0.75, sc: 0.48, spd: 1.2 },
+      { deg: 320, r: 0.50, sc: 0.42, spd: 1.4 },
+      // Rumpun dekat kaki/depan
+      { deg: 350, r: 1.15, sc: 0.46, spd: 1.4 },
+      { deg: 10,  r: 1.10, sc: 0.50, spd: 1.3 },
 
-      // 2. Rumpun Rumput Laut Lingkar Luar (Outer Perimeter Clumps)
-      { deg: 20,  r: 1.4,  sc: 1.05, spd: 1.2 },
-      { deg: 45,  r: 1.7,  sc: 1.20, spd: 1.0 },
-      { deg: 75,  r: 1.5,  sc: 0.95, spd: 1.4 },
-      { deg: 110, r: 1.8,  sc: 1.15, spd: 1.1 },
-      { deg: 135, r: 1.45, sc: 1.00, spd: 1.3 },
-      { deg: 165, r: 1.75, sc: 1.25, spd: 0.95 },
-      { deg: 195, r: 1.5,  sc: 1.10, spd: 1.15 },
-      { deg: 220, r: 1.8,  sc: 1.20, spd: 1.05 },
-      { deg: 250, r: 1.4,  sc: 0.90, spd: 1.35 },
-      { deg: 275, r: 1.65, sc: 1.15, spd: 1.1 },
-      { deg: 305, r: 1.45, sc: 1.05, spd: 1.25 },
-      { deg: 330, r: 1.7,  sc: 1.20, spd: 1.0 },
-      // Rumpun dekat kaki user
-      { deg: 350, r: 1.15, sc: 0.85, spd: 1.4 },
-      { deg: 10,  r: 1.10, sc: 0.88, spd: 1.3 },
+      // 2. Rumpun Rumput Laut Zona Menengah (Mid-Reef Glade)
+      { deg: 40,  r: 1.5,  sc: 0.65, spd: 1.1 },
+      { deg: 85,  r: 1.6,  sc: 0.58, spd: 1.25 },
+      { deg: 130, r: 1.45, sc: 0.62, spd: 1.2 },
+      { deg: 180, r: 1.55, sc: 0.55, spd: 1.15 },
+      { deg: 230, r: 1.6,  sc: 0.68, spd: 1.05 },
+      { deg: 290, r: 1.5,  sc: 0.58, spd: 1.3 },
+
+      // 3. Rumpun Rumput Laut Lingkar Luar Samudra (Diperluas 2x lipat hingga radius 2.4m - 3.8m)
+      { deg: 20,  r: 2.5,  sc: 0.85, spd: 1.1 },
+      { deg: 55,  r: 3.2,  sc: 0.95, spd: 0.95 },
+      { deg: 80,  r: 2.8,  sc: 0.80, spd: 1.2 },
+      { deg: 115, r: 3.4,  sc: 1.05, spd: 1.0 },
+      { deg: 145, r: 2.7,  sc: 0.78, spd: 1.15 },
+      { deg: 170, r: 3.3,  sc: 1.00, spd: 0.9 },
+      { deg: 205, r: 2.9,  sc: 0.85, spd: 1.1 },
+      { deg: 240, r: 3.5,  sc: 1.08, spd: 0.95 },
+      { deg: 270, r: 2.7,  sc: 0.82, spd: 1.2 },
+      { deg: 300, r: 3.3,  sc: 0.98, spd: 1.05 },
+      { deg: 335, r: 2.9,  sc: 0.88, spd: 1.0 },
+      { deg: 15,  r: 3.6,  sc: 1.05, spd: 0.92 },
     ];
 
     return rawData.map((k, idx) => {

@@ -26,8 +26,8 @@ import {
 export function UnderwaterTerrain() {
   // 1. Satu mesh dasar laut utuh tak terputus (Single Continuous Displaced Plane)
   const terrainGeometry = useMemo(() => {
-    // Plane 12m x 12m dengan subdivisi 96x96 (~9.400 vertices untuk kontur halus)
-    const plane = new PlaneGeometry(12.0, 12.0, 96, 96);
+    // Plane 24m x 24m dengan subdivisi 120x120 (~14.600 vertices untuk kontur halus luas 2x lipat)
+    const plane = new PlaneGeometry(24.0, 24.0, 120, 120);
     // Putar plane dari bidang XY ke bidang XZ (lantai horizontal)
     plane.rotateX(-Math.PI / 2);
 
@@ -61,8 +61,8 @@ export function UnderwaterTerrain() {
   // Menutup perimeter horizon di kejauhan agar menyatu lembut dengan kabut air laut
   const distantCliffGeometry = useMemo(() => {
     const geo = new BufferGeometry();
-    const segments = 72;
-    const radius = 5.6;
+    const segments = 84;
+    const radius = 11.2; // Diperluas 2x lipat (sebelumnya 5.6m)
     const vertices: number[] = [];
     const colors: number[] = [];
     const indices: number[] = [];
@@ -80,11 +80,11 @@ export function UnderwaterTerrain() {
       const yBase = getTerrainHeight(x, z) - 0.05;
 
       const cliffPeak =
-        Math.sin(angle * 5.0) * 0.45 +
-        Math.cos(angle * 3.0 + 1.2) * 0.35 +
-        Math.sin(angle * 9.0) * 0.18;
+        Math.sin(angle * 5.0) * 0.65 +
+        Math.cos(angle * 3.0 + 1.2) * 0.45 +
+        Math.sin(angle * 9.0) * 0.22;
 
-      const yTop = 0.65 + cliffPeak;
+      const yTop = 0.95 + cliffPeak;
 
       vertices.push(x, yBase, z);
       colors.push(cliffBaseColor.r, cliffBaseColor.g, cliffBaseColor.b);

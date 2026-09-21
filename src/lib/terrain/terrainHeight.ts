@@ -133,14 +133,14 @@ export function getTerrainHeight(x: number, z: number): number {
   // Oktaf 3: Riak pasir laut alami (dune ripples mikro)
   const d3 = simplex2D(x * 2.2 + 3.1, z * 2.2 + 0.7) * 0.025;
 
-  // Variasi radial alami di area luar (r > 2.6m) agar melandai naik ke tebing panorama
+  // Variasi radial alami di area luar (r > 5.2m) agar melandai naik ke tebing panorama
   let rimElevation = 0;
-  if (r > 2.6) {
-    const rimFactor = (r - 2.6) / 2.6;
+  if (r > 5.2) {
+    const rimFactor = (r - 5.2) / 5.2;
     const clampedFactor = Math.min(1.0, Math.max(0.0, rimFactor));
     const angle = Math.atan2(x, z);
     const rimWaviness = Math.sin(angle * 4.0) * 0.12 + Math.cos(angle * 2.0 + 0.8) * 0.08;
-    rimElevation = (clampedFactor * clampedFactor) * (0.35 + rimWaviness);
+    rimElevation = (clampedFactor * clampedFactor) * (0.45 + rimWaviness);
   }
 
   return baseDepth + d1 + d2 + d3 + rimElevation;
