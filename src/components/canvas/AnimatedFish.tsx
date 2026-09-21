@@ -154,13 +154,14 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
   const { scene, animations } = useGLTF(modelPath);
 
   // 1. Kloning scene & skeleton unik tiap instansi ikan
+  const isLargeCreature = (visualScale ?? 1.0) > 0.35 && !species?.toLowerCase().includes("clown");
   const clonedScene = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
     clone.traverse((child) => {
       if (child instanceof Mesh) {
-        child.castShadow = true;
+        child.castShadow = isLargeCreature;
         child.receiveShadow = true;
-        child.frustumCulled = false;
+        child.frustumCulled = true;
         if (child.material) {
           const mat = child.material as MeshStandardMaterial | MeshPhysicalMaterial;
           if ("roughness" in mat) mat.roughness = roughness;
@@ -170,7 +171,7 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       }
     });
     return clone;
-  }, [scene, roughness, metalness]);
+  }, [scene, roughness, metalness, isLargeCreature]);
 
   // 2. Normalisasi timeline animasi clip ke t = 0.0 (Zero-Indexed Keyframes)
   // Menghindari freeze keyframe jika diexport dari timeline NLA panjang Blender

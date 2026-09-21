@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, RefObject } from "react";
+import { useEffect, useState, useSyncExternalStore, RefObject } from "react";
 import { EffectComposer, GodRays } from "@react-three/postprocessing";
 import { BlendFunction, KernelSize } from "postprocessing";
 import { Mesh } from "three";
@@ -21,13 +21,23 @@ interface PostProcessingAtmosphereProps {
 export function PostProcessingAtmosphere({ sunRef }: PostProcessingAtmosphereProps) {
   const [sunMesh, setSunMesh] = useState<Mesh | null>(null);
 
+  const isMobile = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener("resize", callback);
+      return () => window.removeEventListener("resize", callback);
+    },
+    () => window.innerWidth < 768 || "ontouchstart" in window,
+    () => false
+  );
+
   useEffect(() => {
     if (sunRef.current) {
       setSunMesh(sunRef.current);
     }
   }, [sunRef]);
 
-  if (!sunMesh) {
+  // Pada perangkat mobile, lewati GodRays full-screen pass untuk menjaga 60 FPS stabil
+  if (!sunMesh || isMobile) {
     return null;
   }
 
@@ -36,11 +46,11 @@ export function PostProcessingAtmosphere({ sunRef }: PostProcessingAtmospherePro
       <GodRays
         sun={sunMesh}
         blendFunction={BlendFunction.SCREEN}
-        samples={36}          // Ringan untuk GPU smartphone
+        samples={28}
         density={0.93}
         decay={0.92}
-        weight={0.24}         // Nilai halus agar tidak dominan
-        exposure={0.36}       // Subtle atmospheric depth
+        weight={0.24}
+        exposure={0.36}
         clampMax={0.85}
         kernelSize={KernelSize.SMALL}
         blur={true}

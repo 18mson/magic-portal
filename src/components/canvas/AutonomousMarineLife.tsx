@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { Vector3 } from "three";
 import { useGLTF } from "@react-three/drei";
 import { AnimatedFish, FishModelConfig } from "./AnimatedFish";
@@ -892,30 +893,48 @@ useGLTF.preload(ORCA_CONFIG.modelPath);
  *   - Ikan Pari: pemakan dasar laut (benthic feeder).
  *   - Ikan Badut: teritorial karang.
  *   - Hiu & Orca: patroli laut dalam.
- * - Anti-Clustering Feeding: Mencegah ikan beramai-ramai menumpuk ke satu titik pakan yang sama.
+ * - Adaptive Population: Menyesuaikan jumlah kawanan ikan badut di smartphone (8 ekor) vs desktop (16 ekor)
+ *   untuk menjaga performa 60 FPS tetap mulus tanpa stuttering.
  */
 export function AutonomousMarineLife() {
+  const isMobile = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener("resize", callback);
+      return () => window.removeEventListener("resize", callback);
+    },
+    () => window.innerWidth < 768 || "ontouchstart" in window,
+    () => false
+  );
+
   return (
     <group>
-      {/* 1. Koloni Ikan Badut Klasik Oranye-Putih (Anemon Kiri & Sekitarnya: 8 Ekor Beragam Strata) */}
+      {/* 1. Koloni Ikan Badut Klasik Oranye-Putih (Anemon Kiri: 4 ekor di HP, 8 ekor di Desktop) */}
       <AnimatedFish config={CLOWNFISH_CLASSIC_ALPHA_CONFIG} />
       <AnimatedFish config={CLOWNFISH_CLASSIC_BETA_CONFIG} />
       <AnimatedFish config={CLOWNFISH_CLASSIC_JUNIOR_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_CLASSIC_TINY_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_CLASSIC_HIGH_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_CLASSIC_BOTTOM_CONFIG} />
       <AnimatedFish config={CLOWNFISH_CLASSIC_ROAMER_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_CLASSIC_NUZZLER_CONFIG} />
+      {!isMobile && (
+        <>
+          <AnimatedFish config={CLOWNFISH_CLASSIC_TINY_CONFIG} />
+          <AnimatedFish config={CLOWNFISH_CLASSIC_HIGH_CONFIG} />
+          <AnimatedFish config={CLOWNFISH_CLASSIC_BOTTOM_CONFIG} />
+          <AnimatedFish config={CLOWNFISH_CLASSIC_NUZZLER_CONFIG} />
+        </>
+      )}
 
-      {/* 2. Koloni Ikan Badut Pastel Pink-Putih (Anemon Kanan & Sekitarnya: 8 Ekor Beragam Strata) */}
+      {/* 2. Koloni Ikan Badut Pastel Pink-Putih (Anemon Kanan: 4 ekor di HP, 8 ekor di Desktop) */}
       <AnimatedFish config={CLOWNFISH_PASTEL_ALPHA_CONFIG} />
       <AnimatedFish config={CLOWNFISH_PASTEL_BETA_CONFIG} />
       <AnimatedFish config={CLOWNFISH_PASTEL_JUNIOR_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_PASTEL_TINY_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_PASTEL_HIGH_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_PASTEL_BOTTOM_CONFIG} />
       <AnimatedFish config={CLOWNFISH_PASTEL_ROAMER_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_PASTEL_NUZZLER_CONFIG} />
+      {!isMobile && (
+        <>
+          <AnimatedFish config={CLOWNFISH_PASTEL_TINY_CONFIG} />
+          <AnimatedFish config={CLOWNFISH_PASTEL_HIGH_CONFIG} />
+          <AnimatedFish config={CLOWNFISH_PASTEL_BOTTOM_CONFIG} />
+          <AnimatedFish config={CLOWNFISH_PASTEL_NUZZLER_CONFIG} />
+        </>
+      )}
 
       {/* 3. Ikan Nila (Celah Karang Tengah) */}
       <AnimatedFish config={NILA_FISH_CONFIG} />

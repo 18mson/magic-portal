@@ -33,8 +33,9 @@ export function FanCoral3D({
 
     clone.traverse((child) => {
       if (child instanceof Mesh) {
-        child.castShadow = true;
+        child.castShadow = false;
         child.receiveShadow = true;
+        child.frustumCulled = true;
 
         if (child.material) {
           const origMat = child.material as MeshStandardMaterial;

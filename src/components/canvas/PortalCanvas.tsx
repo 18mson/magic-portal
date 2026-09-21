@@ -8,6 +8,7 @@ import { ACESFilmicToneMapping, Mesh } from "three";
 import { xrStore } from "@/lib/xrStore";
 import { SceneEnvironment } from "./SceneEnvironment";
 import { PostProcessingAtmosphere } from "./PostProcessingAtmosphere";
+import { SceneLoadingScreen } from "./SceneLoadingScreen";
 
 interface PortalCanvasProps {
   isARSessionActive?: boolean;
@@ -38,7 +39,12 @@ export function PortalCanvas({
         isARSessionActive ? "bg-transparent" : "bg-slate-950"
       }`}
     >
+      {/* Layar Preloader 0-100% dengan transisi halus saat model selesai diunduh */}
+      <SceneLoadingScreen />
+
       <Canvas
+        dpr={[1, 1.5]}
+        performance={{ min: 0.5 }}
         gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
         camera={{ position: [0, 0, 0.5], fov: 60, near: 0.05, far: 500 }}
         className="w-full h-full touch-none"

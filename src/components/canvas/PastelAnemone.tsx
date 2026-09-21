@@ -9,7 +9,6 @@ import {
   MeshStandardMaterial,
   Vector3,
   Color,
-  PointLight,
   IUniform,
 } from "three";
 import { SkeletonUtils } from "three-stdlib";
@@ -41,7 +40,6 @@ export function PastelAnemone({
 }: PastelAnemoneProps) {
   const groupRef = useRef<Group>(null);
   const tentacleMeshRef = useRef<Mesh | null>(null);
-  const lightRef = useRef<PointLight>(null);
 
   // Load GLTF Model
   const { scene } = useGLTF("/models/anemone_pastel.glb");
@@ -68,9 +66,9 @@ export function PastelAnemone({
 
     clone.traverse((child) => {
       if (child instanceof Mesh) {
-        child.castShadow = true;
+        child.castShadow = false;
         child.receiveShadow = true;
-        child.frustumCulled = false;
+        child.frustumCulled = true;
 
         // Kloning material agar tiap rumpun memiliki warna & pengaturan unik
         if (child.material) {
@@ -220,11 +218,6 @@ export function PastelAnemone({
       (targetProximity - currentProximityRef.current) * Math.min(1.0, clampedDelta * 4.5);
     uniformsRef.current.uClownfishProximity.value = currentProximityRef.current;
 
-    // Pembaruan intensitas cahaya lokal secara langsung tanpa re-render
-    if (lightRef.current) {
-      lightRef.current.intensity = 0.2 + currentProximityRef.current * 0.7;
-    }
-
     // 4. Ritme Bernapas Halus Rumpun Anemon (Subtle Ocean Breathing Pulse)
     const t = uniformsRef.current.uTime.value;
     const breathe = 1.0 + Math.sin(t * 1.6) * 0.015;
@@ -236,15 +229,6 @@ export function PastelAnemone({
   return (
     <group ref={groupRef} position={position} rotation={rotation} scale={[scale, scale, scale]}>
       <primitive object={clonedScene} />
-      {/* Pendaran cahaya lembut lokal saat ikan badut bersarang */}
-      <pointLight
-        ref={lightRef}
-        color={glowColor}
-        intensity={0.2}
-        distance={0.75}
-        decay={2}
-        position={[0, 0.15, 0]}
-      />
     </group>
   );
 }

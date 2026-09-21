@@ -45,14 +45,6 @@ function FoodPelletItem({ pellet }: { pellet: FoodPellet }) {
           depthWrite={false}
         />
       </mesh>
-
-      {/* Cahaya Titik Lokal Menerangi Pasir & Ikan di Dekatnya */}
-      <pointLight
-        color={pellet.glowColor}
-        intensity={0.45}
-        distance={0.5}
-        decay={2}
-      />
     </group>
   );
 }
