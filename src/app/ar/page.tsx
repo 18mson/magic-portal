@@ -5,7 +5,6 @@ import Link from "next/link";
 import { PortalCanvas } from "@/components/canvas/PortalCanvas";
 import { xrStore, checkARSupport, ARSupportStatus } from "@/lib/xrStore";
 import { underwaterAudio } from "@/lib/audio/underwaterAudio";
-import { CreatureInspectionCard } from "@/components/ui/CreatureInspectionCard";
 
 export default function ARPage() {
   // Track client mounting safely without cascading re-renders
@@ -117,9 +116,6 @@ export default function ARPage() {
         onToggleAtmosphere={handleToggleAtmosphere}
       />
 
-      {/* Kartu Inspeksi Hologram Satwa Laut (Milestone 6) */}
-      <CreatureInspectionCard />
-
       {/* Header navigasi (hanya saat tidak di dalam AR penuh) */}
       {!isARActive && (
         <>
@@ -128,7 +124,7 @@ export default function ARPage() {
               <span className="text-xs font-semibold text-teal-400 tracking-wider uppercase">
                 Milestone 6
               </span>
-              <span className="text-xs text-slate-400">Creature Inspection &amp; Deep Immersion</span>
+              <span className="text-xs text-slate-400">Atmospheric Deep Immersion</span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
@@ -168,7 +164,7 @@ export default function ARPage() {
 
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
             <div className="bg-slate-950/75 backdrop-blur-md px-3.5 py-1 rounded-full border border-teal-500/30 text-center shadow-lg text-[11px] text-teal-300">
-              ✨ Ketuk ikan untuk inspeksi profil biologis &bull; Ketuk air untuk pakan &amp; riak
+              ✨ Ketuk air laut untuk memberi pakan &amp; menciptakan riak gelombang
             </div>
           </div>
         </>

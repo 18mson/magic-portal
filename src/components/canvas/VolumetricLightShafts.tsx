@@ -67,13 +67,19 @@ const fragmentShader = `
   }
 `;
 
-function SingleShaft({ config }: { config: ShaftConfig }) {
+function SingleShaft({
+  config,
+  sharedTime,
+}: {
+  config: ShaftConfig;
+  sharedTime: { current: number };
+}) {
   const matRef = useRef<ShaderMaterial>(null);
 
   const uniforms = useMemo(
     () => ({
-      // Warna hangat pink-gold khas ilustrasi
-      color: { value: new Color("#ffd4df") },
+      // Warna keemasan hangat pastel khas Abzû (kontras elegan dengan teal laut)
+      color: { value: new Color("#fff1cc") },
       time: { value: 0 },
       intensity: { value: config.intensity },
       speed: { value: config.speed },
@@ -82,9 +88,9 @@ function SingleShaft({ config }: { config: ShaftConfig }) {
     [config]
   );
 
-  useFrame((state) => {
+  useFrame(() => {
     if (matRef.current) {
-      matRef.current.uniforms.time.value = state.clock.getElapsedTime();
+      matRef.current.uniforms.time.value = sharedTime.current;
     }
   });
 
@@ -110,82 +116,118 @@ function SingleShaft({ config }: { config: ShaftConfig }) {
 }
 
 /**
- * Mengonversi sudut derajat, radius jarak dari tengah user, dan tinggi Y
- * untuk menaruh titik asal berkas cahaya secara tersebar melingkar 360°.
- */
-function polarToXYZ(
-  deg: number,
-  radius: number,
-  y: number
-): [number, number, number] {
-  const rad = (deg * Math.PI) / 180;
-  return [
-    Number((radius * Math.sin(rad)).toFixed(3)),
-    y,
-    Number((-radius * Math.cos(rad)).toFixed(3)),
-  ];
-}
-
-/**
- * Komponen Berkas Cahaya Matahari Volumetrik 3D:
- * Berkas cahaya disebar merata di sekeliling 360 derajat dengan jarak radius aman (2.2m – 3.8m)
- * sehingga tidak menumpuk di 1 titik dan memberikan suasana tembus cahaya dari segala arah.
+ * Komponen Berkas Cahaya Matahari Volumetrik 3D Ala Abzû:
+ * - Berkas sinar matahari menembus dari bukaan air di atas (y = 4.8m - 5.2m)
+ *   menyerong lembut ke arah ekosistem karang dan dasar laut.
+ * - Rona keemasan hangat pastel (#fff1cc / #ffe3a1) yang subtle, memberikan depth
+ *   dan kehangatan visual tanpa menutupi visibilitas ikan maupun terumbu karang.
+ * - Efisiensi tinggi: kalkulasi shader murni GPU, aman dan stabil 60 FPS di WebXR AR HP Android.
  */
 export function VolumetricLightShafts() {
   const groupRef = useRef<Group>(null);
+  const sharedTime = useRef(0);
 
-  // 10 berkas cahaya tersebar di 360 derajat (North, NE, East, SE, South, SW, West, NW)
+  useFrame((state) => {
+    sharedTime.current = state.clock.getElapsedTime();
+  });
+
+  // Berkas sinar matahari menembus dari permukaan air atas ke dalam air
   const shafts: ShaftConfig[] = useMemo(() => {
-    const rawConfigs = [
-      // Sektor Depan (Jarak jauh di belakang karang utama, bukan di depan mata)
-      { deg: 350, r: 3.2, y: 3.6, rot: [0.12, 0.05, -0.06], in: 0.18, spd: 1.1 },
-      { deg: 25,  r: 2.8, y: 3.5, rot: [0.08, 0.15, -0.1],  in: 0.17, spd: 1.3 },
-      { deg: 320, r: 3.0, y: 3.6, rot: [0.1, -0.12, 0.08],  in: 0.16, spd: 1.0 },
+    return [
+      // 1. Berkas Utama: Dari bukaan surya atas menembus ke pusat diorama
+      {
+        pos: [0.8, 4.8, -1.0],
+        rot: [0.18, 0.25, -0.15],
+        topRadius: 0.15,
+        bottomRadius: 1.1,
+        height: 6.2,
+        intensity: 0.15, // Subtle & dreamy
+        speed: 1.0,
+        phase: 0.0,
+      },
+      {
+        pos: [1.3, 4.9, -1.4],
+        rot: [0.12, 0.1, -0.22],
+        topRadius: 0.2,
+        bottomRadius: 1.3,
+        height: 6.4,
+        intensity: 0.13,
+        speed: 1.15,
+        phase: 1.8,
+      },
+      {
+        pos: [0.4, 4.7, -0.7],
+        rot: [0.22, 0.35, -0.08],
+        topRadius: 0.12,
+        bottomRadius: 0.95,
+        height: 6.0,
+        intensity: 0.14,
+        speed: 0.9,
+        phase: 3.2,
+      },
 
-      // Sektor Kanan (East / North-East)
-      { deg: 65,  r: 3.4, y: 3.7, rot: [0.05, 0.25, -0.15], in: 0.19, spd: 1.2 },
-      { deg: 105, r: 2.9, y: 3.5, rot: [-0.06, 0.2, -0.12], in: 0.17, spd: 1.4 },
+      // 2. Berkas Sekunder: Membiaskan sinar ke area karang depan & samping
+      {
+        pos: [-0.6, 4.6, -1.1],
+        rot: [0.15, -0.2, 0.18],
+        topRadius: 0.15,
+        bottomRadius: 1.05,
+        height: 5.8,
+        intensity: 0.12,
+        speed: 1.05,
+        phase: 0.9,
+      },
+      {
+        pos: [1.8, 4.8, -0.5],
+        rot: [0.08, 0.4, -0.25],
+        topRadius: 0.18,
+        bottomRadius: 1.15,
+        height: 6.1,
+        intensity: 0.12,
+        speed: 1.2,
+        phase: 2.4,
+      },
 
-      // Sektor Belakang (South / South-East)
-      { deg: 150, r: 3.3, y: 3.6, rot: [-0.14, 0.15, -0.08], in: 0.18, spd: 1.0 },
-      { deg: 190, r: 3.1, y: 3.5, rot: [-0.16, -0.05, 0.06], in: 0.17, spd: 1.3 },
-
-      // Sektor Kiri (West / South-West)
-      { deg: 235, r: 3.2, y: 3.6, rot: [-0.08, -0.22, 0.14], in: 0.18, spd: 1.1 },
-      { deg: 275, r: 3.5, y: 3.7, rot: [0.04, -0.25, 0.15],  in: 0.19, spd: 1.2 },
-
-      // Berkas vertikal lembut di atas kuadran luar
-      { deg: 15,  r: 4.0, y: 3.9, rot: [0.06, 0.1, -0.08],   in: 0.15, spd: 0.9 },
+      // 3. Berkas Atmosferik Lingkar Luar: Memberikan kedalaman 360°
+      {
+        pos: [-1.4, 4.5, -2.0],
+        rot: [0.2, -0.3, 0.15],
+        topRadius: 0.15,
+        bottomRadius: 1.0,
+        height: 5.9,
+        intensity: 0.11,
+        speed: 0.95,
+        phase: 4.1,
+      },
+      {
+        pos: [2.1, 4.7, -2.2],
+        rot: [0.18, 0.3, -0.2],
+        topRadius: 0.2,
+        bottomRadius: 1.2,
+        height: 6.3,
+        intensity: 0.11,
+        speed: 1.1,
+        phase: 5.3,
+      },
     ];
-
-    return rawConfigs.map((c, idx) => ({
-      pos: polarToXYZ(c.deg, c.r, c.y),
-      rot: c.rot as [number, number, number],
-      topRadius: 0.1,
-      bottomRadius: 0.85,
-      height: 5.8,
-      intensity: c.in,
-      speed: c.spd,
-      phase: (idx * 1.6) % (Math.PI * 2),
-    }));
   }, []);
 
   return (
     <group ref={groupRef}>
-      {/* 10 berkas cahaya tersebar merata 360° */}
+      {/* Berkas sinar matahari tembus air ala Abzû */}
       {shafts.map((shaft, i) => (
-        <SingleShaft key={i} config={shaft} />
+        <SingleShaft key={i} config={shaft} sharedTime={sharedTime} />
       ))}
 
-      {/* Partikel debu laut / plankton melayang merata di sekeliling 360 derajat */}
+      {/* Partikel debu plankton / bias air laut keemasan */}
       <Sparkles
-        count={80}
-        scale={[8.0, 4.0, 8.0]}
-        position={[0, 0.3, 0]}
-        size={3.0}
-        speed={0.3}
-        opacity={0.5}
-        color="#fbcfe8"
+        count={70}
+        scale={[7.0, 4.5, 7.0]}
+        position={[0.5, 1.2, -1.0]}
+        size={2.8}
+        speed={0.25}
+        opacity={0.45}
+        color="#fef3c7" // Warm sunlit plankton dust
       />
     </group>
   );

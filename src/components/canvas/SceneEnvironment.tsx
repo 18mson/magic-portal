@@ -14,7 +14,9 @@ import { AutonomousMarineLife } from "./AutonomousMarineLife";
 import { ColorGradingAtmosphere } from "./ColorGradingAtmosphere";
 import { InteractiveWaterSurface } from "./InteractiveWaterSurface";
 import { PortalFrame } from "./PortalFrame";
-import { CreatureInspectionReticle } from "./CreatureInspectionReticle";
+import { UnderwaterSunAperture } from "./UnderwaterSunAperture";
+import { Mesh } from "three";
+import { RefObject } from "react";
 
 export interface SceneEnvironmentProps {
   /** Spesifikasi lengkap diorama (opsional) */
@@ -25,6 +27,8 @@ export interface SceneEnvironmentProps {
   worldScale?: number;
   /** Mode atmosfer ekosistem laut: crimson vs abyssal */
   atmosphereMode?: "crimson" | "abyssal";
+  /** Referensi target sun mesh untuk God Rays postprocessing */
+  sunRef?: RefObject<Mesh | null>;
 }
 
 export function SceneEnvironment({
@@ -32,6 +36,7 @@ export function SceneEnvironment({
   layers,
   worldScale = 1.0,
   atmosphereMode = "crimson",
+  sunRef,
 }: SceneEnvironmentProps) {
   const activeSpec = spec ?? (atmosphereMode === "abyssal" ? abyssalMidnightSpec : crimsonTwilightSpec);
   const activeLayers = layers ?? activeSpec.layers;
@@ -60,6 +65,9 @@ export function SceneEnvironment({
         {/* Hutan Rumput Laut 3D Nyata */}
         <KelpForest3D />
 
+        {/* Sumber Penetrasi Sinar Matahari di Permukaan Air (Abzû Sun Aperture) */}
+        <UnderwaterSunAperture ref={sunRef} position={[0.9, 4.9, -1.1]} />
+
         {/* Berkas Cahaya Matahari / Bulan Tembus Kedalaman Air */}
         <VolumetricLightShafts />
 
@@ -67,9 +75,6 @@ export function SceneEnvironment({
         <Suspense fallback={null}>
           <AutonomousMarineLife />
         </Suspense>
-
-        {/* Cincin Fokus Hologram saat Satwa Laut Diinspeksi */}
-        <CreatureInspectionReticle />
 
         {/* Interaktivitas Pakan Ikan, Riak Gelombang, & Letupan Gelembung */}
         <InteractiveWaterSurface />

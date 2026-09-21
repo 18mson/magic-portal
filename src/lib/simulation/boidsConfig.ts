@@ -7,7 +7,7 @@
 
 export type FishState = "wandering" | "pausing" | "darting";
 
-export type MarineSpecies = "manta" | "blue-angel" | "round-tang" | "school";
+export type MarineSpecies = "manta" | "blue-angel" | "round-tang" | "school" | "clown-fish";
 
 export interface SpeciesBoidsConfig {
   /** Jarak tetangga untuk perhitungan alignment & cohesion (meter) */
@@ -248,5 +248,44 @@ export const SPECIES_CONFIGS: Record<MarineSpecies, SpeciesBoidsConfig> = {
     },
     collisionRadius: 0.32,
     baseScale: 0.60,
+  },
+
+  // ==========================================================================
+  // 5. IKAN BADUT 3D RIGGED (Clownfish) - Animasi Bawaan Clip Skinned Mesh
+  // ==========================================================================
+  "clown-fish": {
+    neighborRadius: 1.15,
+    desiredSeparation: 0.26,
+    separationWeight: 2.1,
+    alignmentWeight: 1.15,
+    cohesionWeight: 0.95,
+    obstacleAvoidanceWeight: 4.5,
+    obstacleDetectionRadius: 0.50,
+    terrainAvoidanceWeight: 3.8,
+    minTerrainClearance: 0.16,
+    wanderWeight: 0.55,
+    boundaryWeight: 1.6,
+    speeds: {
+      wandering: 0.34,
+      pausing: 0.04,
+      darting: 0.95,
+    },
+    maxForce: {
+      wandering: 0.55,
+      pausing: 0.70,
+      darting: 1.8,
+    },
+    stateDurations: {
+      wandering: [3.5, 7.5],
+      pausing: [1.5, 3.5],
+      darting: [0.8, 1.8],
+    },
+    transitionChances: {
+      fromWandering: { pausing: 0.45, darting: 0.55 },
+      fromPausing: { wandering: 0.8, darting: 0.2 },
+      fromDarting: { wandering: 0.85, pausing: 0.15 },
+    },
+    collisionRadius: 0.15,
+    baseScale: 0.34,
   },
 };

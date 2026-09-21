@@ -11,6 +11,7 @@ export interface FoodPellet {
   color: string;
   glowColor: string;
   scale: number;
+  wobbleOffset: number;
 }
 
 export interface WaterRipple {
@@ -83,16 +84,17 @@ class FeedingSystemManager {
       id,
       position: [worldPos[0], worldPos[1], worldPos[2]],
       velocity: [
-        (Math.random() - 0.5) * 0.08, // sedikit drift horizontal
-        -0.12 - Math.random() * 0.05, // meluncur turun perlahan dalam air
-        (Math.random() - 0.5) * 0.08,
+        (Math.random() - 0.5) * 0.04,
+        -0.08, // Kecepatan awal saat mulai tenggelam di air
+        (Math.random() - 0.5) * 0.04,
       ],
       age: 0,
-      lifespan: 14.0, // bertahan hingga 14 detik jika tidak dimakan
+      lifespan: 14.0, // Bertahan hingga 14 detik jika tidak dimakan
       consumed: false,
       color: picked.color,
       glowColor: picked.glow,
       scale: 0.038 + Math.random() * 0.015,
+      wobbleOffset: Math.random() * Math.PI * 2,
     };
 
     this.pellets.push(pellet);
@@ -169,23 +171,51 @@ class FeedingSystemManager {
   public update(delta: number) {
     const dt = Math.min(delta, 0.1);
 
-    // 1. Update Pellets
+    // 1. Update Pellets: Animasi tenggelam ke bawah secara bertahap & organik
     for (let i = this.pellets.length - 1; i >= 0; i--) {
       const p = this.pellets[i];
       p.age += dt;
 
-      // Hambatan air (drag)
-      p.velocity[0] *= 0.96;
-      p.velocity[2] *= 0.96;
-
-      p.position[0] += p.velocity[0] * dt;
-      p.position[1] += p.velocity[1] * dt;
-      p.position[2] += p.velocity[2] * dt;
-
-      // Cek apakah pakan mendarat di permukaan terrain pasir
+      // Cek apakah pakan sudah menyentuh pasir dasar laut
       const groundY = getTerrainHeight(p.position[0], p.position[2]);
-      if (p.position[1] <= groundY + 0.03) {
-        p.position[1] = groundY + 0.03;
+      const isOnGround = p.position[1] <= groundY + 0.025;
+
+      if (!isOnGround) {
+        // Gravitasi air: mempercepat tenggelam menuju kecepatan terminal meluncur (~ -0.16 m/s)
+        const targetSinkSpeed = -0.16;
+        p.velocity[1] += (targetSinkSpeed - p.velocity[1]) * Math.min(1.0, 3.2 * dt);
+
+        // Hambatan air (drag) horizontal
+        p.velocity[0] *= 0.94;
+        p.velocity[2] *= 0.94;
+
+        // Efek melayang lembut meliuk daun/butiran saat tenggelam di air
+        const swayX = Math.sin(p.age * 4.2 + p.wobbleOffset) * 0.022;
+        const swayZ = Math.cos(p.age * 3.6 + p.wobbleOffset) * 0.022;
+
+        p.position[0] += (p.velocity[0] + swayX) * dt;
+        p.position[1] += p.velocity[1] * dt;
+        p.position[2] += (p.velocity[2] + swayZ) * dt;
+
+        // Jejak gelembung mikro halus saat butiran pakan meluncur ke bawah
+        if (p.age < 2.5 && Math.random() < 0.07) {
+          this.burstBubbles.push({
+            id: `bubble-trail-${++this.burstIdCounter}`,
+            position: [p.position[0], p.position[1] + 0.015, p.position[2]],
+            velocity: [
+              (Math.random() - 0.5) * 0.02,
+              0.12 + Math.random() * 0.08,
+              (Math.random() - 0.5) * 0.02,
+            ],
+            scale: 0.012 + Math.random() * 0.008,
+            opacity: 0.65,
+            age: 0,
+            lifespan: 0.7,
+          });
+        }
+      } else {
+        // Mendarat tenang di atas pasir
+        p.position[1] = groundY + 0.025;
         p.velocity[0] = 0;
         p.velocity[1] = 0;
         p.velocity[2] = 0;

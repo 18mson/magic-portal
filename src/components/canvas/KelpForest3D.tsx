@@ -7,7 +7,7 @@ import {
   Color,
   DoubleSide,
   Float32BufferAttribute,
-  Group,
+  MeshStandardMaterial,
 } from "three";
 import { getTerrainHeight } from "@/lib/terrain/terrainHeight";
 
@@ -26,7 +26,7 @@ interface KelpClumpConfig {
  */
 function create3DKelpGeometry(height: number, width: number) {
   const geo = new BufferGeometry();
-  const segments = 8;
+  const segments = 14; // Subdivisi lebih rapat agar lengkungan vertex shader halus alami
   const vertices: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
@@ -95,36 +95,18 @@ function create3DKelpGeometry(height: number, width: number) {
 function SingleKelpClump({
   config,
   geometry,
+  material,
 }: {
   config: KelpClumpConfig;
   geometry: BufferGeometry;
+  material: MeshStandardMaterial;
 }) {
-  const groupRef = useRef<Group>(null);
-
-  // Animasi liukan lembut rumput laut mengikuti arus air (akar tetap di pasir)
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    const t = state.clock.getElapsedTime();
-    const time = t * config.speed + config.phase;
-
-    // Ayunan meliuk di pucuk
-    groupRef.current.rotation.z = Math.sin(time) * 0.12;
-    groupRef.current.rotation.x = Math.cos(time * 0.8) * 0.08;
-  });
-
   const s = config.scale;
 
   return (
     <group position={config.pos} rotation={[0, config.rotY, 0]}>
-      <group ref={groupRef} scale={[s, s, s]}>
-        <mesh geometry={geometry}>
-          <meshStandardMaterial
-            vertexColors={true}
-            roughness={0.7}
-            metalness={0.05}
-            side={DoubleSide}
-          />
-        </mesh>
+      <group scale={[s, s, s]}>
+        <mesh geometry={geometry} material={material} />
       </group>
     </group>
   );
@@ -138,6 +120,81 @@ function SingleKelpClump({
  */
 export function KelpForest3D() {
   const kelpGeo = useMemo(() => create3DKelpGeometry(1.25, 0.28), []);
+
+  // Ref untuk uniforms yang dapat dimutasi setiap frame tanpa melanggar immutability rules React
+  const uniformsRef = useRef({
+    uTime: { value: 0 },
+    uKelpHeight: { value: 1.25 },
+  });
+
+  // Shared material tunggal dengan injeksi Vertex Shader GPU (onBeforeCompile)
+  // Menjamin 0 kalkulasi CPU per-rumpun: seluruh deformasi liukan dihitung di GPU.
+  const kelpMaterial = useMemo(() => {
+    const mat = new MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.7,
+      metalness: 0.05,
+      side: DoubleSide,
+    });
+
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = uniformsRef.current.uTime;
+      shader.uniforms.uKelpHeight = uniformsRef.current.uKelpHeight;
+
+      shader.vertexShader = `
+        uniform float uTime;
+        uniform float uKelpHeight;
+        ${shader.vertexShader}
+      `;
+
+      shader.vertexShader = shader.vertexShader.replace(
+        "#include <begin_vertex>",
+        `
+        #include <begin_vertex>
+
+        // 1. Ketinggian relatif daun dari pangkal (0.0 di akar, 1.0 di pucuk tertinggi)
+        float normH = clamp(position.y / uKelpHeight, 0.0, 1.0);
+
+        // 2. Amplitude 0 di pangkal (akar diam total di pasir dengan smoothstep cutoff di dasar)
+        float bendFactor = smoothstep(0.015, 0.85, normH) * pow(normH, 1.8);
+
+        // 3. Posisi unik per-instance rumpun diekstrak dari kolom translasi modelMatrix (world XZ)
+        vec2 clumpPos = vec2(modelMatrix[3].x, modelMatrix[3].z);
+
+        // 4. Hash deterministik untuk phase offset acak & sedikit variasi frekuensi per instance
+        float clumpRandomPhase = fract(sin(dot(clumpPos, vec2(127.1, 311.7))) * 43758.5453) * 6.283185;
+        float clumpSpeed = 0.85 + fract(sin(dot(clumpPos, vec2(269.5, 183.3))) * 43758.5453) * 0.35;
+
+        // 5. Traveling Wave (gelombang merambat dari pangkal menuju pucuk daun seiring normH)
+        // Formula: wavePhase = (waktu * frekuensi) - (posisiVertikal * waveNumber) + phaseOffset
+        float waveTime = uTime * (clumpSpeed * 0.95) + clumpRandomPhase;
+        float stalkWaveX = sin(waveTime * 1.15 - normH * 2.6 + clumpPos.x * 0.3);
+        float stalkWaveZ = cos(waveTime * 0.9 - normH * 2.1 + clumpPos.y * 0.3);
+
+        // 6. Riak getar mikro (micro-flutter) hanya di dekat pucuk daun
+        float microFlutter = sin(waveTime * 2.6 - normH * 3.8) * 0.22 * pow(normH, 1.5);
+
+        // 7. Simpangan lentur horizontal & kompensasi tinggi
+        float swayX = (stalkWaveX + microFlutter) * 0.26 * bendFactor;
+        float swayZ = (stalkWaveZ + microFlutter * 0.5) * 0.20 * bendFactor;
+        float heightSag = -0.055 * bendFactor * (swayX * swayX + swayZ * swayZ);
+
+        transformed.x += swayX;
+        transformed.y += heightSag;
+        transformed.z += swayZ;
+        `
+      );
+    };
+
+    mat.customProgramCacheKey = () => "kelp-forest-vertex-sway-v1";
+
+    return mat;
+  }, []);
+
+  // Update uniform waktu HANYA SEKALI per frame untuk seluruh hutan kelp di scene
+  useFrame((state) => {
+    uniformsRef.current.uTime.value = state.clock.getElapsedTime();
+  });
 
   const kelpClumps: KelpClumpConfig[] = useMemo(() => {
     const rawData = [
@@ -186,7 +243,12 @@ export function KelpForest3D() {
   return (
     <group>
       {kelpClumps.map((cfg, i) => (
-        <SingleKelpClump key={i} config={cfg} geometry={kelpGeo} />
+        <SingleKelpClump
+          key={i}
+          config={cfg}
+          geometry={kelpGeo}
+          material={kelpMaterial}
+        />
       ))}
     </group>
   );

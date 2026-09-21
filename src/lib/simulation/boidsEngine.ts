@@ -58,6 +58,11 @@ export interface BoidAgent {
   stateTimer: number;
   dartDirection: [number, number, number];
   wanderAngle: number;
+
+  // Tracking Arah Belok & Rigged Animation
+  turnRate: number;
+  lastTurnDir: "left" | "right";
+  biteTimer: number;
 }
 
 export interface CreateBoidOptions {
@@ -124,6 +129,9 @@ export function createBoidAgent(opts: CreateBoidOptions): BoidAgent {
     stateTimer: initialTimer,
     dartDirection: [vx, vy, vz],
     wanderAngle: rand() * Math.PI * 2,
+    turnRate: 0,
+    lastTurnDir: rand() > 0.5 ? "right" : "left",
+    biteTimer: 0,
   };
 }
 
@@ -294,6 +302,7 @@ export class BoidsSimulationEngine {
             feedingSystem.consumePellet(nearestPellet.id);
             a.state = "pausing";
             a.stateTimer = 1.1;
+            a.biteTimer = 0.9;
             a.velocity[0] *= 0.25;
             a.velocity[1] *= 0.25;
             a.velocity[2] *= 0.25;
@@ -463,8 +472,21 @@ export class BoidsSimulationEngine {
         a.pitch = Math.atan2(-vy, hSpeed);
 
         const turnRate = diffYaw / clampedDt;
+        a.turnRate = turnRate;
+        if (diffYaw > 0.02) {
+          a.lastTurnDir = "right";
+        } else if (diffYaw < -0.02) {
+          a.lastTurnDir = "left";
+        }
+
         const targetRoll = -Math.min(0.45, Math.max(-0.45, turnRate * 0.25));
         a.roll += (targetRoll - a.roll) * Math.min(1.0, clampedDt * 6.0);
+      } else {
+        a.turnRate *= 0.85;
+      }
+
+      if (a.biteTimer > 0) {
+        a.biteTimer = Math.max(0, a.biteTimer - clampedDt);
       }
     }
   }
