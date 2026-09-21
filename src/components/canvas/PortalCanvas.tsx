@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { XR, NotInXR, XRDomOverlay } from "@react-three/xr";
@@ -63,11 +63,13 @@ export function PortalCanvas({
           </NotInXR>
 
           {/* Objek World-Space: Layered Cutout Diorama */}
-          <SceneEnvironment
-            sunRef={sunRef}
-            worldScale={worldScale}
-            atmosphereMode={atmosphereMode}
-          />
+          <Suspense fallback={null}>
+            <SceneEnvironment
+              sunRef={sunRef}
+              worldScale={worldScale}
+              atmosphereMode={atmosphereMode}
+            />
+          </Suspense>
 
           {/* WebXR DOM Overlay untuk kontrol in-AR di layar HP */}
           <XRDomOverlay className="fixed inset-0 pointer-events-none flex flex-col justify-between p-4 pb-8 z-50 select-none">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { DoubleSide, Group, Mesh } from "three";
+import { DoubleSide, Group, Mesh, MeshBasicMaterial } from "three";
 import { feedingSystem, FoodPellet, WaterRipple, BurstBubble } from "@/lib/simulation/feedingSystem";
 
 /**
@@ -37,11 +37,11 @@ function FoodPelletItem({ pellet }: { pellet: FoodPellet }) {
 
       {/* Halo Pendaran Lembut */}
       <mesh>
-        <sphereGeometry args={[pellet.scale * 2.2, 12, 12]} />
+        <sphereGeometry args={[pellet.scale * 1.7, 12, 12]} />
         <meshBasicMaterial
           color={pellet.glowColor}
           transparent
-          opacity={0.38}
+          opacity={0.32}
           depthWrite={false}
         />
       </mesh>
@@ -49,8 +49,8 @@ function FoodPelletItem({ pellet }: { pellet: FoodPellet }) {
       {/* Cahaya Titik Lokal Menerangi Pasir & Ikan di Dekatnya */}
       <pointLight
         color={pellet.glowColor}
-        intensity={0.8}
-        distance={0.9}
+        intensity={0.45}
+        distance={0.5}
         decay={2}
       />
     </group>
@@ -87,9 +87,67 @@ function BubbleItem({ bubble }: { bubble: BurstBubble }) {
 }
 
 /**
+ * Komponen Riak Air (Water Ripple Wave) 60/120 FPS
+ * Memperbarui matriks skala GPU langsung di useFrame tanpa alokasi ulang geometri tiap frame.
+ */
+function RippleItem({ ripple }: { ripple: WaterRipple }) {
+  const groupRef = useRef<Group>(null);
+  const ring1MatRef = useRef<MeshBasicMaterial>(null);
+  const ring2MatRef = useRef<MeshBasicMaterial>(null);
+
+  useFrame(() => {
+    if (groupRef.current) {
+      // Skala lingkar riak diperbarui tiap frame secara kontinyu dan mulus
+      const s = Math.max(0.001, ripple.radius);
+      groupRef.current.scale.set(s, s, 1);
+    }
+    if (ring1MatRef.current) {
+      ring1MatRef.current.opacity = ripple.opacity * 0.85;
+    }
+    if (ring2MatRef.current) {
+      ring2MatRef.current.opacity = ripple.opacity * 0.45;
+    }
+  });
+
+  return (
+    <group
+      ref={groupRef}
+      position={[ripple.center[0], ripple.center[1] + 0.01, ripple.center[2]]}
+      rotation={[-Math.PI / 2, 0, 0]}
+    >
+      {/* Cincin Utama (Puncak Gelombang Luar) */}
+      <mesh>
+        <ringGeometry args={[0.93, 1.0, 64]} />
+        <meshBasicMaterial
+          ref={ring1MatRef}
+          color="#ffeedb"
+          transparent
+          opacity={0.85}
+          side={DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Cincin Sekunder (Gelombang Lembut yang Mengekor di Dalam) */}
+      <mesh>
+        <ringGeometry args={[0.70, 0.78, 64]} />
+        <meshBasicMaterial
+          ref={ring2MatRef}
+          color="#ff9770"
+          transparent
+          opacity={0.45}
+          side={DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
  * Komponen Visual Interaktif:
  * 1. Merender butiran pakan bercahaya yang meluncur turun ke dasar laut
- * 2. Merender gelombang riak air akustik di permukaan
+ * 2. Merender gelombang riak air akustik di permukaan (Mulus 60 FPS)
  * 3. Merender letupan & jejak gelembung partikel
  */
 export function InteractiveWaterSurface() {
@@ -127,33 +185,9 @@ export function InteractiveWaterSurface() {
         <FoodPelletItem key={p.id} pellet={p} />
       ))}
 
-      {/* 2. Cincin Riak Air Akustik Bertingkat */}
+      {/* 2. Cincin Riak Air Akustik Bertingkat (Mulus 60 FPS) */}
       {ripples.map((r) => (
-        <group key={r.id} position={[r.center[0], r.center[1] + 0.01, r.center[2]]} rotation={[-Math.PI / 2, 0, 0]}>
-          {/* Cincin Utama */}
-          <mesh>
-            <ringGeometry args={[Math.max(0.01, r.radius - 0.018), r.radius, 32]} />
-            <meshBasicMaterial
-              color="#ffeedb"
-              transparent
-              opacity={r.opacity * 0.7}
-              side={DoubleSide}
-              depthWrite={false}
-            />
-          </mesh>
-
-          {/* Cincin Luar Halus */}
-          <mesh>
-            <ringGeometry args={[Math.max(0.01, r.radius * 0.75 - 0.012), r.radius * 0.75, 32]} />
-            <meshBasicMaterial
-              color="#ff70a6"
-              transparent
-              opacity={r.opacity * 0.4}
-              side={DoubleSide}
-              depthWrite={false}
-            />
-          </mesh>
-        </group>
+        <RippleItem key={r.id} ripple={r} />
       ))}
 
       {/* 3. Letupan & Jejak Gelembung Partikel */}

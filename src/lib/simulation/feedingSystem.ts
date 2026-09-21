@@ -93,7 +93,7 @@ class FeedingSystemManager {
       consumed: false,
       color: picked.color,
       glowColor: picked.glow,
-      scale: 0.038 + Math.random() * 0.015,
+      scale: 0.009 + Math.random() * 0.003, // Diperkecil realistis: radius 9mm - 12mm
       wobbleOffset: Math.random() * Math.PI * 2,
     };
 
@@ -215,7 +215,7 @@ class FeedingSystemManager {
         }
       } else {
         // Mendarat tenang di atas pasir
-        p.position[1] = groundY + 0.025;
+        p.position[1] = groundY + 0.009;
         p.velocity[0] = 0;
         p.velocity[1] = 0;
         p.velocity[2] = 0;
@@ -227,14 +227,17 @@ class FeedingSystemManager {
       }
     }
 
-    // 2. Update Ripples
+    // 2. Update Ripples: Ekspansi melingkar mulus gelombang air akustik
     for (let i = this.ripples.length - 1; i >= 0; i--) {
       const r = this.ripples[i];
       r.age += dt;
-      const progress = r.age / r.lifespan;
+      const progress = Math.min(1.0, r.age / r.lifespan);
 
-      r.radius = 0.04 + (r.maxRadius - 0.04) * Math.sin(progress * (Math.PI / 2));
-      r.opacity = Math.max(0, 0.85 * (1 - progress));
+      // Kurva kemunculan & ekspansi riak alami (ease-out cubic halus)
+      const easeOut = 1.0 - Math.pow(1.0 - progress, 2.5);
+      r.radius = 0.03 + (r.maxRadius - 0.03) * easeOut;
+      // Fade out kuadratik halus di ujung ekspansi
+      r.opacity = Math.max(0, 0.9 * Math.pow(1.0 - progress, 1.5));
 
       if (r.age >= r.lifespan) {
         this.ripples.splice(i, 1);

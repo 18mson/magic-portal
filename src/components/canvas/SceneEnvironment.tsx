@@ -60,7 +60,9 @@ export function SceneEnvironment({
         <UnderwaterTerrain />
 
         {/* Formasi Karang 3D Solid & Anemon Organik */}
-        <CoralReef3D />
+        <Suspense fallback={null}>
+          <CoralReef3D />
+        </Suspense>
 
         {/* Hutan Rumput Laut 3D Nyata */}
         <KelpForest3D />
