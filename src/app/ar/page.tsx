@@ -20,6 +20,17 @@ export default function ARPage() {
   const [isMuted, setIsMuted] = useState(true);
   const [worldScale, setWorldScale] = useState(1.0);
   const [atmosphereMode, setAtmosphereMode] = useState<"crimson" | "abyssal">("crimson");
+  const [showWaterHint, setShowWaterHint] = useState(true);
+  const [showARCard, setShowARCard] = useState(true);
+
+  // Otomatis sembunyikan petunjuk air laut dan kartu AR setelah 2 detik pada awal load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowWaterHint(false);
+      setShowARCard(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleToggleAudio = () => {
     const nextMuted = underwaterAudio.toggleMute();
@@ -153,6 +164,19 @@ export default function ARPage() {
                 <span className="hidden sm:inline">{isMuted ? "Suara Bisu" : "Suara Aktif"}</span>
               </button>
 
+              {/* Tombol pemicu / toggle popup AR card di desktop atau mobile */}
+              <button
+                onClick={() => setShowARCard((prev) => !prev)}
+                className={`px-3 py-1.5 rounded-xl backdrop-blur-md border text-xs font-medium transition-colors shadow-lg flex items-center gap-1.5 cursor-pointer ${showARCard
+                    ? "bg-teal-500/20 border-teal-500/50 text-teal-300"
+                    : "bg-slate-900/85 hover:bg-slate-800 border-slate-800 text-teal-400 hover:text-teal-300"
+                  }`}
+                title="Buka / Tutup Panel Info Mode AR"
+              >
+                <span>🥽</span>
+                <span>Mode AR</span>
+              </button>
+
               <Link
                 href="/"
                 className="px-3 py-1.5 rounded-xl bg-slate-900/85 hover:bg-slate-800 backdrop-blur-md border border-slate-800 text-xs font-medium text-white transition-colors shadow-lg"
@@ -162,7 +186,13 @@ export default function ARPage() {
             </div>
           </header>
 
-          <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+          {/* Petunjuk pakan air laut (tampil 2 detik pertama) */}
+          <div
+            className={`absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-all duration-700 ease-out ${showWaterHint
+                ? "opacity-100 translate-y-0 scale-100"
+                : "opacity-0 -translate-y-2 scale-95"
+              }`}
+          >
             <div className="bg-slate-950/75 backdrop-blur-md px-3.5 py-1 rounded-full border border-teal-500/30 text-center shadow-lg text-[11px] text-teal-300">
               ✨ Ketuk air laut untuk memberi pakan &amp; menciptakan riak gelombang
             </div>
@@ -207,10 +237,23 @@ export default function ARPage() {
         </div>
       )}
 
-      {/* Floating Bottom Panel (saat di luar AR) */}
+      {/* Floating Bottom Panel (saat di luar AR, auto-hide 2 detik atau dibuka via tombol Mode AR) */}
       {!isARActive && (
-        <div className="absolute bottom-6 left-4 right-4 z-20 flex flex-col items-center">
-          <div className="w-full max-w-md bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-4 shadow-2xl space-y-3">
+        <div
+          className={`absolute bottom-6 left-4 right-4 z-20 flex flex-col items-center transition-all duration-500 ease-out ${showARCard
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 translate-y-6 pointer-events-none"
+            }`}
+        >
+          <div className="relative w-full max-w-md bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-2xl p-4 shadow-2xl space-y-3">
+            {/* Tombol Tutup Kartu */}
+            <button
+              onClick={() => setShowARCard(false)}
+              className="absolute top-3 right-3 text-slate-400 hover:text-white text-xs w-6 h-6 flex items-center justify-center rounded-full hover:bg-slate-800/80 transition-colors cursor-pointer"
+              title="Tutup Kartu"
+            >
+              ✕
+            </button>
             {/* Status: Periksa Dukungan WebXR */}
             {supportStatus === "CHECKING" && (
               <div className="flex items-center justify-center gap-2 py-2 text-xs text-slate-400">

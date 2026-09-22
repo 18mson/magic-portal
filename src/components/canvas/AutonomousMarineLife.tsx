@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { Suspense, useSyncExternalStore } from "react";
 import { Vector3 } from "three";
 import { useGLTF } from "@react-three/drei";
 import { AnimatedFish, FishModelConfig } from "./AnimatedFish";
@@ -1259,67 +1259,85 @@ export function AutonomousMarineLife() {
   return (
     <group>
       {/* 1. Koloni Ikan Badut Klasik Oranye-Putih (Anemon Kiri: 4 ekor di HP, 8 ekor di Desktop) */}
-      <AnimatedFish config={CLOWNFISH_CLASSIC_ALPHA_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_CLASSIC_BETA_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_CLASSIC_JUNIOR_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_CLASSIC_ROAMER_CONFIG} />
-      {!isMobile && (
-        <>
-          <AnimatedFish config={CLOWNFISH_CLASSIC_TINY_CONFIG} />
-          <AnimatedFish config={CLOWNFISH_CLASSIC_HIGH_CONFIG} />
-          <AnimatedFish config={CLOWNFISH_CLASSIC_BOTTOM_CONFIG} />
-          <AnimatedFish config={CLOWNFISH_CLASSIC_NUZZLER_CONFIG} />
-        </>
-      )}
+      <Suspense fallback={null}>
+        <AnimatedFish config={CLOWNFISH_CLASSIC_ALPHA_CONFIG} />
+        <AnimatedFish config={CLOWNFISH_CLASSIC_BETA_CONFIG} />
+        <AnimatedFish config={CLOWNFISH_CLASSIC_JUNIOR_CONFIG} />
+        <AnimatedFish config={CLOWNFISH_CLASSIC_ROAMER_CONFIG} />
+        {!isMobile && (
+          <>
+            <AnimatedFish config={CLOWNFISH_CLASSIC_TINY_CONFIG} />
+            <AnimatedFish config={CLOWNFISH_CLASSIC_HIGH_CONFIG} />
+            <AnimatedFish config={CLOWNFISH_CLASSIC_BOTTOM_CONFIG} />
+            <AnimatedFish config={CLOWNFISH_CLASSIC_NUZZLER_CONFIG} />
+          </>
+        )}
+      </Suspense>
 
       {/* 2. Koloni Ikan Badut Pastel Pink-Putih (Anemon Kanan: 4 ekor di HP, 8 ekor di Desktop) */}
-      <AnimatedFish config={CLOWNFISH_PASTEL_ALPHA_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_PASTEL_BETA_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_PASTEL_JUNIOR_CONFIG} />
-      <AnimatedFish config={CLOWNFISH_PASTEL_ROAMER_CONFIG} />
-      {!isMobile && (
-        <>
-          <AnimatedFish config={CLOWNFISH_PASTEL_TINY_CONFIG} />
-          <AnimatedFish config={CLOWNFISH_PASTEL_HIGH_CONFIG} />
-          <AnimatedFish config={CLOWNFISH_PASTEL_BOTTOM_CONFIG} />
-          <AnimatedFish config={CLOWNFISH_PASTEL_NUZZLER_CONFIG} />
-        </>
-      )}
+      <Suspense fallback={null}>
+        <AnimatedFish config={CLOWNFISH_PASTEL_ALPHA_CONFIG} />
+        <AnimatedFish config={CLOWNFISH_PASTEL_BETA_CONFIG} />
+        <AnimatedFish config={CLOWNFISH_PASTEL_JUNIOR_CONFIG} />
+        <AnimatedFish config={CLOWNFISH_PASTEL_ROAMER_CONFIG} />
+        {!isMobile && (
+          <>
+            <AnimatedFish config={CLOWNFISH_PASTEL_TINY_CONFIG} />
+            <AnimatedFish config={CLOWNFISH_PASTEL_HIGH_CONFIG} />
+            <AnimatedFish config={CLOWNFISH_PASTEL_BOTTOM_CONFIG} />
+            <AnimatedFish config={CLOWNFISH_PASTEL_NUZZLER_CONFIG} />
+          </>
+        )}
+      </Suspense>
 
       {/* 3. Ikan Nila (Celah Karang Tengah) */}
-      <AnimatedFish config={NILA_FISH_CONFIG} />
+      <Suspense fallback={null}>
+        <AnimatedFish config={NILA_FISH_CONFIG} />
+      </Suspense>
 
-      {/* 4. Koloni Ikan Pari di Permukaan Laut (Fever of Stingrays: Berenang Anggun Melingkari Area Tertentu lalu Berpindah Bersama) */}
-      <AnimatedFish config={STINGRAY_ALPHA_CONFIG} />
-      <AnimatedFish config={STINGRAY_BETA_CONFIG} />
-      {!isMobile && (
-        <>
-          <AnimatedFish config={STINGRAY_GAMMA_CONFIG} />
-          <AnimatedFish config={STINGRAY_DELTA_CONFIG} />
-        </>
-      )}
+      {/* 4. Koloni Ikan Pari di Permukaan Laut (Fever of Stingrays) */}
+      <Suspense fallback={null}>
+        <AnimatedFish config={STINGRAY_ALPHA_CONFIG} />
+        <AnimatedFish config={STINGRAY_BETA_CONFIG} />
+        {!isMobile && (
+          <>
+            <AnimatedFish config={STINGRAY_GAMMA_CONFIG} />
+            <AnimatedFish config={STINGRAY_DELTA_CONFIG} />
+          </>
+        )}
+      </Suspense>
 
       {/* 5. Lumba-Lumba (Kolom Air Atas) */}
-      <AnimatedFish config={DOLPHIN_CONFIG} />
+      <Suspense fallback={null}>
+        <AnimatedFish config={DOLPHIN_CONFIG} />
+      </Suspense>
 
       {/* 6. Hiu Karang (Perimeter Laut Kiri Belakang & Patroli Dalam) */}
-      <AnimatedFish config={SHARK_CONFIG} />
+      <Suspense fallback={null}>
+        <AnimatedFish config={SHARK_CONFIG} />
+      </Suspense>
 
       {/* 7. Paus Pembunuh (Perimeter Laut Kanan Belakang & Menyelam Bebas) */}
-      <AnimatedFish config={ORCA_CONFIG} />
+      <Suspense fallback={null}>
+        <AnimatedFish config={ORCA_CONFIG} />
+      </Suspense>
 
       {/* 8. Penyu Laut Dewasa (Jelajah Anggun Terumbu Karang & Permukaan) */}
-      <AnimatedFish config={SEA_TURTLE_CONFIG} />
+      <Suspense fallback={null}>
+        <AnimatedFish config={SEA_TURTLE_CONFIG} />
+      </Suspense>
 
       {/* 9. Kawanan Bayi Penyu / Tukik Bervariasi Ukuran (2 di HP, 4 di Desktop) */}
-      <AnimatedFish config={BABY_TURTLE_LEADER_CONFIG} />
-      <AnimatedFish config={BABY_TURTLE_MEDIUM_CONFIG} />
-      {!isMobile && (
-        <>
-          <AnimatedFish config={BABY_TURTLE_TINY_CONFIG} />
-          <AnimatedFish config={BABY_TURTLE_CORAL_CONFIG} />
-        </>
-      )}
+      <Suspense fallback={null}>
+        <AnimatedFish config={BABY_TURTLE_LEADER_CONFIG} />
+        <AnimatedFish config={BABY_TURTLE_MEDIUM_CONFIG} />
+        {!isMobile && (
+          <>
+            <AnimatedFish config={BABY_TURTLE_TINY_CONFIG} />
+            <AnimatedFish config={BABY_TURTLE_CORAL_CONFIG} />
+          </>
+        )}
+      </Suspense>
     </group>
   );
 }

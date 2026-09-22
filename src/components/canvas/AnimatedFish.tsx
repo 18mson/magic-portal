@@ -196,18 +196,41 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
     );
   }, [species, id]);
 
+  const isTurtle = useMemo(() => {
+    const s = (species || "").toLowerCase();
+    const i = (id || "").toLowerCase();
+    return s.includes("turtle") || s.includes("penyu") || s.includes("kura") || i.includes("turtle") || i.includes("penyu");
+  }, [species, id]);
+
+  const isWhale = useMemo(() => {
+    const s = (species || "").toLowerCase();
+    const i = (id || "").toLowerCase();
+    return s.includes("whale") || s.includes("paus") || s.includes("orca") || i.includes("whale") || i.includes("paus") || i.includes("orca");
+  }, [species, id]);
+
   const clonedScene = useMemo(() => {
     const clone = SkeletonUtils.clone(scene);
     clone.traverse((child) => {
       if (child instanceof Mesh) {
         child.castShadow = isLargeCreature;
         child.receiveShadow = true;
-        child.frustumCulled = true;
+        // PENTING: Jangan aktifkan frustum culling pada SkinnedMesh/model beranimasi 3D.
+        // Three.js tidak mengupdate bounding sphere secara otomatis saat tulang bersinkronisasi di GPU,
+        // sehingga jika frustumCulled = true, mesh akan hilang seketika saat sudut pandang kamera bergeser.
+        child.frustumCulled = false;
         if (child.material) {
-          const mat = child.material as MeshStandardMaterial | MeshPhysicalMaterial;
-          if ("roughness" in mat) mat.roughness = roughness;
-          if ("metalness" in mat) mat.metalness = metalness;
-          mat.needsUpdate = true;
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => {
+              if (m && "roughness" in m) (m as MeshStandardMaterial).roughness = roughness;
+              if (m && "metalness" in m) (m as MeshStandardMaterial).metalness = metalness;
+              m.needsUpdate = true;
+            });
+          } else {
+            const mat = child.material as MeshStandardMaterial | MeshPhysicalMaterial;
+            if ("roughness" in mat) mat.roughness = roughness;
+            if ("metalness" in mat) mat.metalness = metalness;
+            mat.needsUpdate = true;
+          }
         }
       }
     });
@@ -319,6 +342,7 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
   );
   const currentHeadingRef = useRef<number>(initialHeading ?? 0);
   const currentPitchRef = useRef<number>(0);
+  const currentPitchVelRef = useRef<number>(0);         // Kecepatan sudut pitch menukik/mendongak (rad/s smoothed)
   const currentRollRef = useRef<number>(0);             // Kemiringan badan (procedural banking roll)
   const currentAngularVelRef = useRef<number>(0);       // Kecepatan putar sudut (rad/s smoothed)
   const surgeTimerRef = useRef<number>(0);
@@ -404,7 +428,9 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
 
   // Main render loop
   useFrame((_, delta) => {
-    const clampedDelta = Math.min(delta, 0.1);
+    // Hindari delta 0 atau tak terhingga yang dapat menyebabkan pembagian NaN/Infinity
+    const clampedDelta = Math.min(Math.max(delta, 0.0005), 0.1);
+    const safeDelta = Math.max(0.001, clampedDelta);
     const root = rootGroupRef.current;
     if (!root) return;
 
@@ -460,6 +486,11 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
 
     let moveSpeed = baseCruisingSpeed;
     let targetYaw = currentHeadingRef.current;
+    let targetPitch = 0;
+
+    // Batas sudut menukik (pitch down/up) & laju kemudi pitch spesifik morfologi satwa
+    const maxPitchAngle = isWhale ? 0.32 : isLargeCreature ? 0.45 : isTurtle ? 0.58 : 0.72;
+    const pitchTurnRate = turnSpeed ? turnSpeed * 0.75 : isWhale ? 2.2 : isLargeCreature ? 3.0 : isTurtle ? 3.8 : 5.2;
 
     if (behaviorStateRef.current === "feeding" && nearestPellet) {
       const toPelletX = nearestPellet.position[0] - currentPosRef.current.x;
@@ -480,7 +511,7 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       const maxTurn = effectiveTurn * clampedDelta;
       const clampedTurn = MathUtils.clamp(diffYaw, -maxTurn, maxTurn);
 
-      const targetAngularVel = clampedTurn / clampedDelta;
+      const targetAngularVel = clampedTurn / safeDelta;
       currentAngularVelRef.current = MathUtils.lerp(
         currentAngularVelRef.current,
         targetAngularVel,
@@ -488,24 +519,58 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       );
       currentHeadingRef.current += currentAngularVelRef.current * clampedDelta;
 
-      const forwardX = Math.sin(currentHeadingRef.current);
-      const forwardZ = Math.cos(currentHeadingRef.current);
-      const dirPelletX = distHoriz > 0.001 ? toPelletX / distHoriz : forwardX;
-      const dirPelletZ = distHoriz > 0.001 ? toPelletZ / distHoriz : forwardZ;
-      const dotAlignment = forwardX * dirPelletX + forwardZ * dirPelletZ;
+      // Kemudi pitch 3D membidik pelet pakan:
+      const feedingMaxPitch = Math.min(0.85, maxPitchAngle * 1.25);
+      const desiredPitchToPellet = Math.atan2(-toPelletY, Math.max(0.12, distHoriz));
+      targetPitch = MathUtils.clamp(desiredPitchToPellet, -feedingMaxPitch, feedingMaxPitch);
 
-      // Hanya melaju jika kepala sudah mengarah (Forward-only, tidak ada gerakan mundur)
+      // Inersia sudut menukik: kepala menukik/mendongak terlebih dahulu
+      const diffPitch = targetPitch - currentPitchRef.current;
+      const maxPitchTurn = pitchTurnRate * 1.2 * clampedDelta;
+      const clampedPitchTurn = MathUtils.clamp(diffPitch, -maxPitchTurn, maxPitchTurn);
+      const targetPitchVel = clampedPitchTurn / safeDelta;
+      currentPitchVelRef.current = MathUtils.lerp(
+        currentPitchVelRef.current,
+        targetPitchVel,
+        Math.min(1.0, clampedDelta * (isLargeCreature ? 4.5 : 8.0))
+      );
+      currentPitchRef.current += currentPitchVelRef.current * clampedDelta;
+
+      const forwardX_flat = Math.sin(currentHeadingRef.current);
+      const forwardZ_flat = Math.cos(currentHeadingRef.current);
+      const dirPelletX = distHoriz > 0.001 ? toPelletX / distHoriz : forwardX_flat;
+      const dirPelletZ = distHoriz > 0.001 ? toPelletZ / distHoriz : forwardZ_flat;
+      const dotAlignment = forwardX_flat * dirPelletX + forwardZ_flat * dirPelletZ;
+
+      // Hanya melaju kencang jika kepala sudah mengarah (Forward-only)
       if (dotAlignment < 0.80) {
-        moveSpeed = baseCruisingSpeed * 0.35; // Tetap melaju pelan agar belokan melengkung
+        moveSpeed = baseCruisingSpeed * 0.35; // Melaju pelan agar belokan melengkung
       } else {
         const sprintFactor = Math.pow((dotAlignment - 0.80) / 0.20, 1.4);
         const sprint = MathUtils.clamp(distHoriz * 1.3, baseCruisingSpeed * 1.3, maxSprintSpeed);
         moveSpeed = sprint * sprintFactor;
       }
 
+      // Pergerakan maju 3D murni didorong sepanjang orientasi sudut badan (Pitch & Yaw)
+      const curPitch = currentPitchRef.current;
+      const cosPitch = Math.cos(curPitch);
+      const sinPitch = Math.sin(curPitch);
+
+      const forwardX = Math.sin(currentHeadingRef.current) * cosPitch;
+      const forwardZ = Math.cos(currentHeadingRef.current) * cosPitch;
+      const forwardY = -sinPitch;
+
       currentPosRef.current.x += forwardX * moveSpeed * clampedDelta;
       currentPosRef.current.z += forwardZ * moveSpeed * clampedDelta;
-      currentPosRef.current.y += toPelletY * Math.min(1.0, 3.2 * clampedDelta);
+
+      const deltaY = forwardY * moveSpeed * clampedDelta;
+      if (toPelletY < 0) {
+        currentPosRef.current.y = Math.max(nearestPellet.position[1], currentPosRef.current.y + deltaY);
+      } else if (toPelletY > 0) {
+        currentPosRef.current.y = Math.min(nearestPellet.position[1], currentPosRef.current.y + deltaY);
+      } else {
+        currentPosRef.current.y += deltaY;
+      }
 
       // Santap pelet pakan
       if (minPelletDist < biteDistance) {
@@ -521,6 +586,19 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       // Redam laju putar saat istirahat
       currentAngularVelRef.current = MathUtils.lerp(
         currentAngularVelRef.current,
+        0,
+        Math.min(1.0, clampedDelta * 3.5)
+      );
+
+      // Ratakan kepala kembali ke horizontal saat istirahat (level floating)
+      targetPitch = 0;
+      currentPitchVelRef.current = MathUtils.lerp(
+        currentPitchVelRef.current,
+        0,
+        Math.min(1.0, clampedDelta * 4.0)
+      );
+      currentPitchRef.current = MathUtils.lerp(
+        currentPitchRef.current,
         0,
         Math.min(1.0, clampedDelta * 3.5)
       );
@@ -604,19 +682,20 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       const distHoriz = Math.hypot(toTargetX, toTargetZ);
       const distTotal = Math.sqrt(toTargetX * toTargetX + toTargetY * toTargetY + toTargetZ * toTargetZ);
 
+      // Kemudi Yaw (Arah Kompas Horizontal)
       if (distHoriz > 0.04) {
         targetYaw = Math.atan2(toTargetX, toTargetZ);
         let diffYaw = targetYaw - currentHeadingRef.current;
         while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
         while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
 
-        // Kecepatan belok terukur: makhluk besar (hiu/paus/pari) berbelok anggun & melengkung
+        // Kecepatan belok terukur: makhluk besar berbelok anggun & melengkung
         const effectiveTurn = turnSpeed ?? (isLargeCreature ? 1.5 : 3.2);
         const maxTurn = effectiveTurn * clampedDelta;
         const clampedTurn = MathUtils.clamp(diffYaw, -maxTurn, maxTurn);
 
         // Smoothing percepatan sudut (menghilangkan sentakan/patah tiba-tiba)
-        const targetAngularVel = clampedTurn / clampedDelta;
+        const targetAngularVel = clampedTurn / safeDelta;
         currentAngularVelRef.current = MathUtils.lerp(
           currentAngularVelRef.current,
           targetAngularVel,
@@ -631,9 +710,29 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
         );
       }
 
-      // Dinamika kecepatan renang & busur belok (curved turn arc):
-      // Saat berbelok atau putar balik 180°, ikan TIDAK berhenti pivot di tempat, melainkan tetap melaju
-      // ke depan (~70-85% laju) sehingga membentuk busur lingkaran yang luas dan alami.
+      // Kemudi Pitch 3D (Animasi Ikan Menukik Dulu / Kepala ke Bawah Dulu):
+      // toTargetY < 0 (target lebih dalam): sudut menukik positif (kepala condong ke bawah)
+      // toTargetY > 0 (target lebih tinggi): sudut mendaki negatif (kepala mendongak ke atas)
+      const depthDiff = Math.abs(toTargetY);
+      // Leveling anticipation: saat mendekati kedalaman target (< 0.16m), ratakan kepala secara mulus
+      const approachDamp = MathUtils.clamp(depthDiff / 0.16, 0.0, 1.0);
+      const rawPitch = Math.atan2(-toTargetY, Math.max(0.15, distHoriz));
+      targetPitch = MathUtils.clamp(rawPitch, -maxPitchAngle, maxPitchAngle) * approachDamp;
+
+      // Inersia kemudi pitch: kepala menunduk/menukik terlebih dahulu dengan percepatan halus
+      const effectivePitchSpeed = turnSpeed ? turnSpeed * 0.65 : pitchTurnRate;
+      const diffPitch = targetPitch - currentPitchRef.current;
+      const maxPitchTurn = effectivePitchSpeed * clampedDelta;
+      const clampedPitchTurn = MathUtils.clamp(diffPitch, -maxPitchTurn, maxPitchTurn);
+      const targetPitchVel = clampedPitchTurn / safeDelta;
+      currentPitchVelRef.current = MathUtils.lerp(
+        currentPitchVelRef.current,
+        targetPitchVel,
+        Math.min(1.0, clampedDelta * (isLargeCreature ? 3.2 : 5.5))
+      );
+      currentPitchRef.current += currentPitchVelRef.current * clampedDelta;
+
+      // Dinamika laju renang busur belok (curved turn arc)
       let currentYawDiff = targetYaw - currentHeadingRef.current;
       while (currentYawDiff > Math.PI) currentYawDiff -= Math.PI * 2;
       while (currentYawDiff < -Math.PI) currentYawDiff += Math.PI * 2;
@@ -647,11 +746,29 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       const surgePulse = 1.0 + Math.sin(surgeTimerRef.current * tailFreq) * surgeAmp;
       moveSpeed = baseCruisingSpeed * surgePulse * turnArcFactor;
 
-      const forwardX = Math.sin(currentHeadingRef.current);
-      const forwardZ = Math.cos(currentHeadingRef.current);
+      // Pergerakan Maju 3D Berbasis Orientasi Tubuh:
+      // Translasi fisik di sumbu Y murni didorong oleh gaya renang maju searah sudut menukik!
+      // Bila kepala belum menukik (pitch ~ 0), ikan tidak jatuh vertikal secara instan.
+      // Begitu kepala menunduk, badan meluncur menukik dengan laju proporsional berenang datar.
+      const curPitch = currentPitchRef.current;
+      const cosPitch = Math.cos(curPitch);
+      const sinPitch = Math.sin(curPitch);
+
+      const forwardX = Math.sin(currentHeadingRef.current) * cosPitch;
+      const forwardZ = Math.cos(currentHeadingRef.current) * cosPitch;
+      const forwardY = -sinPitch;
+
       currentPosRef.current.x += forwardX * moveSpeed * clampedDelta;
       currentPosRef.current.z += forwardZ * moveSpeed * clampedDelta;
-      currentPosRef.current.y += toTargetY * Math.min(1.0, 2.5 * clampedDelta);
+
+      const deltaY = forwardY * moveSpeed * clampedDelta;
+      if (toTargetY < 0) {
+        currentPosRef.current.y = Math.max(wanderTargetRef.current.y, currentPosRef.current.y + deltaY);
+      } else if (toTargetY > 0) {
+        currentPosRef.current.y = Math.min(wanderTargetRef.current.y, currentPosRef.current.y + deltaY);
+      } else {
+        currentPosRef.current.y += deltaY;
+      }
 
       if (!isOrbital && (distTotal < 0.18 || stateTimerRef.current <= 0)) {
         if (Math.random() < 0.5) {
@@ -674,7 +791,7 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
 
     // Menerapkan dorongan tolak halus agar ikan tidak saling menumpuk
     currentPosRef.current.x += separation.x * clampedDelta;
-    currentPosRef.current.y += separation.y * clampedDelta;
+    currentPosRef.current.y += separation.y * 0.35 * clampedDelta;
     currentPosRef.current.z += separation.z * clampedDelta;
 
     // Belokkan kemudi halus jika berpapasan dekat agar berbelok menyamping
@@ -701,35 +818,13 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
       nearestPellet ? minPelletDist : Infinity
     );
 
-    // 4. Orientasi 3D Halus (Yaw Kemudi + Pitch Menukik/Mendaki + Procedural Banking Roll)
-    let targetPitch = 0;
-    if (behaviorStateRef.current === "feeding" && nearestPellet) {
-      const toPelletY = nearestPellet.position[1] - currentPosRef.current.y;
-      const toPelletX = nearestPellet.position[0] - currentPosRef.current.x;
-      const toPelletZ = nearestPellet.position[2] - currentPosRef.current.z;
-      const dHoriz = Math.hypot(toPelletX, toPelletZ);
-      if (dHoriz > 0.05) {
-        targetPitch = -MathUtils.clamp(Math.atan2(toPelletY, dHoriz), -0.42, 0.42);
-      }
-    } else if (behaviorStateRef.current === "swimming") {
-      const toTargetX = wanderTargetRef.current.x - currentPosRef.current.x;
-      const toTargetY = wanderTargetRef.current.y - currentPosRef.current.y;
-      const toTargetZ = wanderTargetRef.current.z - currentPosRef.current.z;
-      const dHoriz = Math.hypot(toTargetX, toTargetZ);
-      if (dHoriz > 0.05) {
-        targetPitch = -MathUtils.clamp(Math.atan2(toTargetY, dHoriz), -0.36, 0.36);
-      }
-    }
-    currentPitchRef.current += (targetPitch - currentPitchRef.current) * Math.min(1.0, clampedDelta * 3.0);
-
-    // 4b. Procedural Banking (Kemiringan Tubuh Saat Berbelok)
-    // Ketika belok ke kanan (angularVel > 0), badan ikan miring ke dalam kurva ke kanan (roll negatif).
-    // Ketika belok ke kiri (angularVel < 0), badan ikan miring ke dalam kurva ke kiri (roll positif).
+    // 4. Orientasi 3D Halus (Procedural Banking Roll & Buoyancy Sway)
+    // Kemiringan tubuh saat berbelok (roll)
     const bankStrength = isLargeCreature ? 0.32 : 0.22;
     const maxBankAngle = isLargeCreature ? 0.52 : 0.65; // ~30° - 37°
     const targetRoll = -MathUtils.clamp(currentAngularVelRef.current * bankStrength, -maxBankAngle, maxBankAngle);
 
-    // Inersia roll dinamis (makhluk berbobot besar memiliki transisi kemiringan yang berat dan mantap)
+    // Inersia roll dinamis
     const rollInertiaSpeed = isLargeCreature ? 3.0 : 4.8;
     currentRollRef.current = MathUtils.lerp(
       currentRollRef.current,
@@ -740,6 +835,16 @@ export function AnimatedFish({ config }: { config: FishModelConfig }) {
     // Buoyancy mikro sway alami mengikuti dorongan sirip ekor
     const tailFreq = isLargeCreature ? 2.2 : 3.8;
     const swimSway = Math.sin(surgeTimerRef.current * tailFreq) * (isLargeCreature ? 0.022 : 0.038);
+
+    // Safeguard mutlak terhadap nilai NaN jika terjadi frame hitch atau tab suspend
+    if (isNaN(currentPosRef.current.x) || isNaN(currentPosRef.current.y) || isNaN(currentPosRef.current.z)) {
+      currentPosRef.current.set(initialPosition[0], initialPosition[1], initialPosition[2]);
+      currentAngularVelRef.current = 0;
+      currentPitchVelRef.current = 0;
+    }
+    if (isNaN(currentHeadingRef.current)) currentHeadingRef.current = initialHeading ?? 0;
+    if (isNaN(currentPitchRef.current)) currentPitchRef.current = 0;
+    if (isNaN(currentRollRef.current)) currentRollRef.current = 0;
 
     targetEuler.set(currentPitchRef.current, currentHeadingRef.current, currentRollRef.current + swimSway, "YXZ");
     targetQuat.setFromEuler(targetEuler);
